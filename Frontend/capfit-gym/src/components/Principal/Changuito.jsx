@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert } from "react-bootstrap";
+import imagenPrototipo from "../../img/prototipo.jpg";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const generarCodigoAleatorio = () => {
@@ -13,6 +14,8 @@ const Changuito = ({ carrito = [], onActualizarCantidad, onEliminar, onVaciarCar
     const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
     const handleFinalizarCompra = async () => {
+        const confirmado = window.confirm("¿Está seguro que desea ir a pagar?");
+        if (!confirmado) return; 
         const token = localStorage.getItem("token");
 
         if (!token) {
@@ -189,7 +192,7 @@ const Changuito = ({ carrito = [], onActualizarCantidad, onEliminar, onVaciarCar
                     <li key={item.id} className="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary pb-2">
                         <div className="d-flex align-items-center">
                             <img 
-                                src={item.imagen} 
+                                src={(!item.imagen || item.imagen === "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=500&q=80") ? imagenPrototipo : item.imagen} 
                                 alt={item.nombre} 
                                 style={{ width: '35px', height: '35px', objectFit: 'cover', borderRadius: '4px' }} 
                                 className="me-2"
@@ -206,14 +209,20 @@ const Changuito = ({ carrito = [], onActualizarCantidad, onEliminar, onVaciarCar
                                     </button>
                                     <span className="mx-2 text-white" style={{ fontSize: '12px' }}>{item.cantidad}</span>
                                     <button 
-                                        className="btn btn-sm btn-outline-warning py-0 px-1" 
+                                        className="btn btn-outline-warning btn-sm py-0 px-1"
                                         style={{ fontSize: '12px' }}
                                         onClick={() => onActualizarCantidad(item.id, 1)}
+                                        disabled={item.cantidad >= item.stock}
                                     >
                                         +
                                     </button>
                                     <span className="ms-2 text-white-50" style={{ fontSize: '11px' }}>(${item.precio.toFixed(2)} "c/u")</span>
                                 </div>
+                                {item.cantidad >= item.stock && (
+                                    <small className="text-danger fw-bold d-block mt-1" style={{ fontSize: '10px' }}>
+                                        ⚠️ LLegaste al Max de Stock
+                                    </small>
+                                )}
                             </div>
                         </div>
 

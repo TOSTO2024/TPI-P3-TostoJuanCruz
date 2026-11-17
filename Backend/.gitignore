@@ -1,0 +1,12 @@
+# Node modules generales
+**/node_modules/
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+
+# Entornos y configuración local
+.env
+.DS_Store
+Thumbs.db

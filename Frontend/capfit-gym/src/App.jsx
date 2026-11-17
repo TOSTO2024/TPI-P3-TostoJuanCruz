@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Login from "./components/auth/login/Login";
 import Register from "./components/auth/register/Register";
 import Carrusel from "./components/Principal/Carrusel";
@@ -7,17 +8,21 @@ import Changuito from "./components/Principal/Changuito";
 import AdminPanel from "./components/admin/AdminPanel";
 import ClasesFuncional from "./components/Principal/ClasesFuncional";
 import MembresiaPago from "./components/priv/MembresiaPago";
+import RutasProtegidas from "./components/priv/RutasProtegidas";
+import ErrorPage from "./components/priv/ErrorPage";
 import { Alert, Modal, Button } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./App.css";
 import capfitLogoNormal from "./img/logoNormal.jpeg";
 
-function App() {
-    const [principal, setPrincipal] = useState("home");
+function AppContent() {
     const [carrito, setCarrito] = useState([]);
     const [mostrarChanguitoFlotante, setMostrarChanguitoFlotante] = useState(false);
     const [mensajeFeedback, setMensajeFeedback] = useState(null);
     const [mostrarModalUbicacion, setMostrarModalUbicacion] = useState(false);
+
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const token = localStorage.getItem("token");
     const rol = localStorage.getItem("rol");
@@ -26,13 +31,17 @@ function App() {
         setCarrito((prevCarrito) => {
             const existe = prevCarrito.find((item) => item.id === producto.id);
             if (existe) {
+                if (existe.cantidad >= producto.stock) {
+                    return prevCarrito; 
+                }
                 return prevCarrito.map((item) =>
                     item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
                 );
             }
+            if (producto.stock <= 0) return prevCarrito;
             return [...prevCarrito, { ...producto, cantidad: 1 }];
         });
-        
+
         setMensajeFeedback({
             texto: `¡Agregaste "${producto.nombre}" al changuito!`,
             variante: "success"
@@ -40,7 +49,7 @@ function App() {
     };
 
     const vaciarChanguito = () => {
-        setCarrito([]); 
+        setCarrito([]);
     };
 
     const manejarClickCarrito = () => {
@@ -49,12 +58,12 @@ function App() {
                 texto: "Debes iniciar sesión para ver y usar tu changuito.",
                 variante: "danger"
             });
-            setPrincipal("login");
+            navigate("/login");
             return;
         }
 
-        if (principal !== "tienda") {
-            setPrincipal("tienda");
+        if (location.pathname !== "/tienda") {
+            navigate("/tienda");
             setMostrarChanguitoFlotante(false);
         } else {
             setMostrarChanguitoFlotante(!mostrarChanguitoFlotante);
@@ -62,16 +71,19 @@ function App() {
     };
 
     const actualizarCantidad = (id, delta) => {
-        setCarrito((prevCarrito) => {
-            return prevCarrito
-                .map((item) => {
-                    if (item.id === id) {
-                        const nuevaCantidad = item.cantidad + delta;
-                        return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : null;
+    setCarrito((prevCarrito) => {
+        return prevCarrito
+            .map((item) => {
+                if (item.id === id) {
+                    const nuevaCantidad = item.cantidad + delta;
+                    if (nuevaCantidad > item.stock) {
+                        return item; 
                     }
-                    return item;
-                })
-                .filter(Boolean);
+                    return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : null;
+                }
+                return item;
+            })
+            .filter(Boolean);
         });
     };
 
@@ -82,40 +94,40 @@ function App() {
     const cerrarSesion = () => {
         localStorage.clear();
         setCarrito([]);
-        setPrincipal("home");
+        navigate("/");
         setMensajeFeedback({
             texto: "Sesión cerrada correctamente.",
             variante: "warning"
         });
     };
 
-    const cambiarVista = (nuevaVista) => {
-        if (nuevaVista === "admin") {
+    const irARuta = (ruta) => {
+        if (ruta === "/admin") {
             if (!token || (rol !== "admin" && rol !== "sysadmin")) {
                 setMensajeFeedback({
                     texto: "Acceso denegado. Debes ser administrador.",
                     variante: "danger"
                 });
-                setPrincipal("login");
+                navigate("/login");
                 return;
             }
         }
-        if ((nuevaVista === "clases" || nuevaVista === "membresia") && !token) {
+        if ((ruta === "/clases" || ruta === "/membresia") && !token) {
             setMensajeFeedback({
                 texto: "Debes iniciar sesión para acceder a esta sección.",
                 variante: "danger"
             });
-            setPrincipal("login");
+            navigate("/login");
             return;
         }
-        setPrincipal(nuevaVista);
         setMostrarChanguitoFlotante(false);
+        navigate(ruta);
     };
 
     return (
         <div className="app-container" style={{ backgroundColor: "#0d0d0d", minHeight: "100vh", color: "#fff" }}>
             <nav className="d-flex justify-content-between align-items-center px-4 py-3" style={{ backgroundColor: "#1a1a1a", borderBottom: "2px solid #ffb300" }}>
-                <div className="d-flex align-items-center" style={{ cursor: "pointer" }} onClick={() => cambiarVista("home")}>
+                <div className="d-flex align-items-center" style={{ cursor: "pointer" }} onClick={() => irARuta("/")}>
                     <img
                         src={capfitLogoNormal}
                         alt="Capfit Gym Logo"
@@ -140,27 +152,28 @@ function App() {
                         }}
                         onClick={() => setMostrarModalUbicacion(true)}
                         title="Ubicación"
-                    >      
+                    >
                         <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg">
                             <g fill="none" fillRule="evenodd" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" transform="translate(4 2)">
-                                <path d="m6.5 16.5407715.6311176-.7118691c.71585099-.8191184 1.36011688-1.5983525 1.93279767-2.3377022l.4733382-.6239608c1.97516433-2.6615039 2.96274653-4.77276704 2.96274653-6.33378943 0-3.33218241-2.6862915-6.03344997-6-6.03344997s-6 2.70126756-6 6.03344997c0 1.56102239.98758218 3.67228553 2.96274653 6.33378943l.4733382.6239608c.73630387.9505925 1.5909423 1.9671163 2.56391527 3.0495713z"/>
-                                <circle cx="6.5" cy="6.5" r="2.5"/>
+                                <path d="m6.5 16.5407715.6311176-.7118691c.71585099-.8191184 1.36011688-1.5983525 1.93279767-2.3377022l.4733382-.6239608c1.97516433-2.6615039 2.96274653-4.77276704 2.96274653-6.33378943 0-3.33218241-2.6862915-6.03344997-6-6.03344997s-6 2.70126756-6 6.03344997c0 1.56102239.98758218 3.67228553 2.96274653 6.33378943l.4733382.6239608c.73630387.9505925 1.5909423 1.9671163 2.56391527 3.0495713z" />
+                                <circle cx="6.5" cy="6.5" r="2.5" />
                             </g>
                         </svg>
                     </button>
 
                     <button
                         className="btn btn-custom-outline fw-semibold px-3 py-2 me-3 text-warning border-warning"
-                        onClick={() => cambiarVista("clases")}
+                        onClick={() => irARuta("/clases")}
+                        title="Clases Funcionales"
                     >
-                        <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fillRule="evenodd" transform="translate(2 2)"><path d="m2.5.5h12c1.1045695 0 2 .8954305 2 2v12c0 1.1045695-.8954305 2-2 2h-12c-1.1045695 0-2-.8954305-2-2v-12c0-1.1045695.8954305-2 2-2z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><path d="m.5 4.5h16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/><circle cx="12.5" cy="8.5" r="1"/><circle cx="8.5" cy="12.5" r="1"/><circle cx="4.5" cy="12.5" r="1"/><circle cx="12.5" cy="12.5" r="1"/></g></g></svg>
+                        <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fillRule="evenodd" transform="translate(2 2)"><path d="m2.5.5h12c1.1045695 0 2 .8954305 2 2v12c0 1.1045695-.8954305 2-2 2h-12c-1.1045695 0-2-.8954305-2-2v-12c0-1.1045695.8954305-2 2-2z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /><path d="m.5 4.5h16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1" /><circle cx="4.5" cy="8.5" r="1" /><circle cx="12.5" cy="8.5" r="1" /><circle cx="8.5" cy="12.5" r="1" /><circle cx="4.5" cy="12.5" r="1" /><circle cx="12.5" cy="12.5" r="1" /></g></g></svg>
                     </button>
 
                     {token && rol !== "admin" && rol !== "sysadmin" && (
                         <button
                             className="btn btn-custom-outline fw-semibold px-3 py-2 me-3 text-warning border-warning"
                             style={{ borderRadius: "12px", backgroundColor: "#1a1a1a" }}
-                            onClick={() => cambiarVista("membresia")}
+                            onClick={() => irARuta("/membresia")}
                         >
                             Membresía
                         </button>
@@ -170,11 +183,11 @@ function App() {
                         className="btn d-flex align-items-center justify-content-center p-2 me-4 position-relative btn-changuito"
                         onClick={manejarClickCarrito}
                         title="Mi Changuito"
-                        style={{ 
-                            width: "42px", 
-                            height: "42px", 
-                            borderRadius: "50%", 
-                            border: "2px solid #ffb300", 
+                        style={{
+                            width: "42px",
+                            height: "42px",
+                            borderRadius: "50%",
+                            border: "2px solid #ffb300",
                             backgroundColor: "#ffb300",
                             transition: "all 0.2s ease"
                         }}
@@ -192,13 +205,13 @@ function App() {
                     {token && (rol === "admin" || rol === "sysadmin") && (
                         <button
                             className="btn btn-custom-outline fw-semibold px-3 py-2 me-3"
-                            onClick={() => cambiarVista("admin")}
+                            onClick={() => irARuta("/admin")}
                         >
                             Panel Admin
                         </button>
                     )}
 
-                    {principal === "tienda" && mostrarChanguitoFlotante && (
+                    {location.pathname === "/tienda" && mostrarChanguitoFlotante && (
                         <div
                             className="position-absolute shadow-lg p-3 rounded"
                             style={{
@@ -224,13 +237,13 @@ function App() {
                         <>
                             <button
                                 className="btn btn-custom-outline fw-semibold px-3 py-2 me-2"
-                                onClick={() => cambiarVista("login")}
+                                onClick={() => irARuta("/login")}
                             >
                                 Iniciar Sesión
                             </button>
                             <button
                                 className="btn btn-custom-outline fw-semibold px-3 py-2"
-                                onClick={() => cambiarVista("register")}
+                                onClick={() => irARuta("/register")}
                             >
                                 Registrarse
                             </button>
@@ -290,65 +303,113 @@ function App() {
                     </div>
                 )}
 
-                {principal === "home" && (
-                    <div className="text-center container">
-                        <Carrusel />
-                        <h1 className="display-3 fw-bold text-white mb-3 mt-4">
-                            BIENVENIDOS A <span className="text-warning">CAPFIT GYM</span>
-                        </h1>
-                        <p className="text-white-50 fs-4 mb-4">Llevá tu rendimiento al siguiente nivel.</p>
+                <Routes>
+                    <Route
+                        path="/"
+                        element={
+                            <div className="text-center container">
+                                <Carrusel />
+                                <h1 className="display-3 fw-bold text-white mb-3 mt-4">
+                                    BIENVENIDOS A <span className="text-warning">CAPFIT GYM</span>
+                                </h1>
+                                <p className="text-white-50 fs-4 mb-4">Llevá tu rendimiento al siguiente nivel.</p>
 
-                        {!token ? (
-                            <button className="btn btn-warning btn-lg fw-bold px-5 text-dark" onClick={() => cambiarVista("register")}>
-                                Logueate Aqui
-                            </button>
-                        ) : (
-                            <div className="text-warning fs-5 fw-semibold">
-                                ¡Qué bueno tenerte por acá, {localStorage.getItem("nombre") || "Atleta"}! 💪🏻🔥
+                                {!token ? (
+                                    <button className="btn btn-warning btn-lg fw-bold px-5 text-dark" onClick={() => irARuta("/register")}>
+                                        Logueate Aqui
+                                    </button>
+                                ) : (
+                                    <div className="text-warning fs-5 fw-semibold">
+                                        ¡Qué bueno tenerte por acá, {localStorage.getItem("nombre") || "Atleta"}! 💪🏻🔥
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                )}
+                        }
+                    />
 
-                {principal === "tienda" && (
-                    <div className="container">
-                        <Catalogo onAgregarAlChanguito={agregarAlCarrito} />
-                    </div>
-                )}
+                    <Route
+                        path="/tienda"
+                        element={
+                            <div className="container">
+                                <Catalogo onAgregarAlChanguito={agregarAlCarrito} />
+                            </div>
+                        }
+                    />
 
-                {principal === "clases" && (
-                    <div className="container">
-                        <ClasesFuncional />
-                    </div>
-                )}
+                    <Route path="/login" element={<Login onLoginSuccess={() => irARuta("/")} />} />
+                    <Route path="/register" element={<Register onRegister={() => irARuta("/login")} />} />
 
-                {principal === "membresia" && rol === "cliente" && (
-                    <div className="container">
-                        <MembresiaPago />
-                    </div>
-                )}
+                    <Route
+                        path="/clases"
+                        element={
+                            <RutasProtegidas>
+                                <div className="container">
+                                    <ClasesFuncional />
+                                </div>
+                            </RutasProtegidas>
+                        }
+                    />
 
-                {principal === "changuito" && (
-                    <div className="container">
-                        <Changuito 
-                            carrito={carrito}
-                            onActualizarCantidad={actualizarCantidad}
-                            onEliminar={eliminarDelCarrito}
-                            onVaciarCarrito={vaciarChanguito}
-                        />
-                    </div>
-                )}
+                    <Route
+                        path="/changuito"
+                        element={
+                            <RutasProtegidas>
+                                <div className="container">
+                                    <Changuito
+                                        carrito={carrito}
+                                        onActualizarCantidad={actualizarCantidad}
+                                        onEliminar={eliminarDelCarrito}
+                                        onVaciarCarrito={vaciarChanguito}
+                                    />
+                                </div>
+                            </RutasProtegidas>
+                        }
+                    />
 
-                {principal === "admin" && (
-                    <div className="container">
-                        <AdminPanel />
-                    </div>
-                )}
+                    <Route
+                        path="/membresia"
+                        element={
+                            <RutasProtegidas allowedRoles={["cliente"]}>
+                                <div className="container">
+                                    <MembresiaPago />
+                                </div>
+                            </RutasProtegidas>
+                        }
+                    />
 
-                {principal === "login" && <Login onLoginSuccess={() => cambiarVista("home")} />}
-                {principal === "register" && <Register onRegister={() => cambiarVista("login")} />}
+                    <Route
+                        path="/admin"
+                        element={
+                            <RutasProtegidas allowedRoles={["admin", "sysadmin"]}>
+                                <div className="container">
+                                    <AdminPanel />
+                                </div>
+                            </RutasProtegidas>
+                        }
+                    />
+                    
+                    <Route 
+                        path="*" 
+                        element={
+                            <ErrorPage 
+                                codigo="404" 
+                                titulo="Página No Encontrada" 
+                                mensaje="La ruta que estás buscando no existe o fue removida del sistema." 
+                            />
+                        } 
+                    />
+
+                </Routes>
             </main>
         </div>
+    );
+}
+
+function App() {
+    return (
+        <BrowserRouter>
+            <AppContent />
+        </BrowserRouter>
     );
 }
 

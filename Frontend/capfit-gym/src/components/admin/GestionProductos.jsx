@@ -32,6 +32,15 @@ const GestionProductos = () => {
     
     const handleSave = (e) => {
         e.preventDefault();
+
+        const precioNum = Number(form.precio);
+        const stockNum = Number(form.stock);
+
+        if (precioNum < 0 || stockNum < 0) {
+            setFeedback({ texto: "Error: El precio y el stock no pueden ser negativos.", variante: "danger" });
+            return; 
+        }
+
         const url = modoEdicion 
             ? `http://localhost:5000/api/productos/${idActual}` 
             : 'http://localhost:5000/api/productos';
@@ -143,14 +152,30 @@ const GestionProductos = () => {
                             <Form.Label>Nombre</Form.Label>
                             <Form.Control type="text" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required />
                         </Form.Group>
+                        
                         <Form.Group className="mb-3">
                             <Form.Label>Precio ($)</Form.Label>
-                            <Form.Control type="number" value={form.precio} onChange={e => setForm({...form, precio: e.target.value})} required />
+                            <Form.Control 
+                                type="number" 
+                                min="0" 
+                                step="0.01" 
+                                value={form.precio} 
+                                onChange={e => setForm({...form, precio: e.target.value})} 
+                                required 
+                            />
                         </Form.Group>
+
                         <Form.Group className="mb-3">
                             <Form.Label>Stock</Form.Label>
-                            <Form.Control type="number" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} required />
+                            <Form.Control 
+                                type="number" 
+                                min="0" 
+                                value={form.stock} 
+                                onChange={e => setForm({...form, stock: e.target.value})} 
+                                required 
+                            />
                         </Form.Group>
+
                         <Form.Group className="mb-3">
                             <Form.Label>URL de Imagen</Form.Label>
                             <Form.Control type="text" value={form.imagen} onChange={e => setForm({...form, imagen: e.target.value})} />

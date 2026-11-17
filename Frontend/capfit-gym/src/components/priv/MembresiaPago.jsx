@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const MembresiaPago = () => {
     const token = localStorage.getItem("token");
@@ -54,6 +55,9 @@ const MembresiaPago = () => {
     }, [fechaUltimoPago]);
 
     const manejarPagoQR = async () => {
+        const confirmado = window.confirm("¿Está seguro que desea ir a pagar?");
+        if (!confirmado) return; 
+
         setCargando(true);
         try {
             const res = await fetch('http://localhost:5000/api/crear-preferencia', {
