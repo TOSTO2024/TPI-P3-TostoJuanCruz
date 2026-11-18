@@ -10,6 +10,7 @@ const GestionProductos = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
     const [feedback, setFeedback] = useState(null);
+    const [modalError, setModalError] = useState(null); 
 
     const [formData, setFormData] = useState({
         nombre: "",
@@ -37,9 +38,18 @@ const GestionProductos = () => {
         const stockNum = Number(formData.stock);
 
         if (priceNum < 0 || stockNum < 0) {
-            setFeedback({ text: "Error: El precio y el stock no pueden ser negativos.", variant: "danger" });
+            setModalError("⚠️ El precio y el stock deben ser mayores o iguales a 0.");
             return; 
         }
+
+        setModalError(null);
+
+        // Validar imagen por defecto si está vacía
+        const imagenFinal = formData.imagen.trim() !== "" 
+            ? formData.imagen 
+            : "https://raw.githubusercontent.com/TOSTO2024/TPI-P3/698e253b510f92c2f3db5b2479ea42dd3052e3cb/Frontend/capfit-gym/src/img/Prototipo.jpg";
+
+        const payload = { ...formData, imagen: imagenFinal };
 
         const url = isEditing 
             ? `http://localhost:5000/api/productos/${currentId}` 
@@ -53,7 +63,7 @@ const GestionProductos = () => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(payload)
         })
         .then(res => {
             if (!res.ok) throw new Error("Error al guardar el producto");
@@ -75,6 +85,7 @@ const GestionProductos = () => {
         setFormData(product);
         setCurrentId(product.id);
         setIsEditing(true);
+        setModalError(null);
         setShowModal(true);
     };
 
@@ -97,6 +108,7 @@ const GestionProductos = () => {
         setFormData({ nombre: "", precio: "", stock: "", imagen: "", descripcion: "" });
         setIsEditing(false);
         setCurrentId(null);
+        setModalError(null);
     };
 
     return (
@@ -147,6 +159,11 @@ const GestionProductos = () => {
                     <Modal.Title className="text-warning">{isEditing ? "Editar Producto" : "Nuevo Producto"}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    {modalError && (
+                        <Alert variant="danger" className="py-2 small fw-bold text-center">
+                            {modalError}
+                        </Alert>
+                    )}
                     <Form onSubmit={handleSubmit}>
                         <Form.Group className="mb-3">
                             <Form.Label>Nombre</Form.Label>
@@ -157,10 +174,12 @@ const GestionProductos = () => {
                             <Form.Label>Precio ($)</Form.Label>
                             <Form.Control 
                                 type="number" 
-                                min="0" 
                                 step="0.01" 
                                 value={formData.precio} 
-                                onChange={e => setFormData({...formData, precio: e.target.value})} 
+                                onChange={e => {
+                                    setFormData({...formData, precio: e.target.value});
+                                    if(Number(e.target.value) >= 0) setModalError(null);
+                                }} 
                                 required 
                             />
                         </Form.Group>
@@ -169,16 +188,18 @@ const GestionProductos = () => {
                             <Form.Label>Stock</Form.Label>
                             <Form.Control 
                                 type="number" 
-                                min="0" 
                                 value={formData.stock} 
-                                onChange={e => setFormData({...formData, stock: e.target.value})} 
+                                onChange={e => {
+                                    setFormData({...formData, stock: e.target.value});
+                                    if(Number(e.target.value) >= 0) setModalError(null);
+                                }} 
                                 required 
                             />
                         </Form.Group>
 
                         <Form.Group className="mb-3">
                             <Form.Label>URL de Imagen</Form.Label>
-                            <Form.Control type="text" value={formData.imagen} onChange={e => setFormData({...formData, imagen: e.target.value})} />
+                            <Form.Control type="text" placeholder="Dejar vacío para usar imagen por defecto" value={formData.imagen} onChange={e => setFormData({...formData, imagen: e.target.value})} />
                         </Form.Group>
 
                         <Form.Group className="mb-3">

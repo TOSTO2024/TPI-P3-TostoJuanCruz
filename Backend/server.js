@@ -31,7 +31,7 @@ db.serialize(() => {
             password TEXT NOT NULL,
             rol TEXT NOT NULL,
             nombre TEXT NOT NULL,
-            dni TEXT,
+            dni TEXT UNIQUE,
             fechaNacimiento TEXT,
             membresia_expiracion TEXT
         )
@@ -40,11 +40,11 @@ db.serialize(() => {
             db.get(`SELECT COUNT(*) as count FROM usuarios`, (err, row) => {
                 if (row.count === 0) {
                     const usuariosIniciales = [
-                        ["sysadmin@capfit.com", "12345678", "sysadmin", "Dueño Supremo"],
-                        ["admin@capfit.com", "12345678", "admin", "Administrador"],
-                        ["cliente@capfit.com", "12345678", "cliente", "Cliente promedio"]
+                        ["sysadmin@capfit.com", "12345678", "sysadmin", "Dueño Supremo", null],
+                        ["admin@capfit.com", "12345678", "admin", "Administrador", null],
+                        ["cliente@capfit.com", "12345678", "cliente", "Cliente promedio", null]
                     ];
-                    const stmt = db.prepare(`INSERT INTO usuarios (email, password, rol, nombre) VALUES (?, ?, ?, ?)`);
+                    const stmt = db.prepare(`INSERT INTO usuarios (email, password, rol, nombre, dni) VALUES (?, ?, ?, ?, ?)`);
                     usuariosIniciales.forEach(u => stmt.run(u));
                     stmt.finalize();
                     console.log("Usuarios iniciales insertados en la base de datos.");
@@ -173,21 +173,26 @@ app.post('/api/login', (req, res) => {
 app.post('/api/register', (req, res) => {
     const { email, password, nombre, dni, fechaNacimiento } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ mensaje: 'Email y contraseña obligatorios.' });
+    if (!email || !password || !dni) {
+        return res.status(400).json({ mensaje: 'Email, contraseña y DNI son obligatorios.' });
     }
 
-    const queryCheck = `SELECT * FROM usuarios WHERE email = ?`;
-    db.get(queryCheck, [email], (err, existe) => {
+    const queryCheck = `SELECT * FROM usuarios WHERE email = ? OR dni = ?`;
+    db.get(queryCheck, [email, dni], (err, existe) => {
         if (err) return res.status(500).json({ mensaje: 'Error en el servidor.' });
         if (existe) {
-            return res.status(400).json({ mensaje: 'El correo ya está registrado.' });
+            if (existe.email === email) {
+                return res.status(400).json({ mensaje: 'El correo electrónico ya se encuentra registrado.' });
+            }
+            if (existe.dni === dni) {
+                return res.status(400).json({ mensaje: 'El DNI ingresado ya se encuentra registrado en el sistema.' });
+            }
         }
 
         const nombreUsuario = nombre || 'Usuario';
         const queryInsert = `INSERT INTO usuarios (email, password, rol, nombre, dni, fechaNacimiento) VALUES (?, ?, 'cliente', ?, ?, ?)`;
         
-        db.run(queryInsert, [email, password, nombreUsuario, dni || null, fechaNacimiento || null], function(err) {
+        db.run(queryInsert, [email, password, nombreUsuario, dni, fechaNacimiento || null], function(err) {
             if (err) return res.status(500).json({ mensaje: 'Error al registrar usuario.' });
 
             const nuevoId = this.lastID;
@@ -214,6 +219,7 @@ app.get('/api/usuarios', verificarToken, verificarAdmin, (req, res) => {
     });
 });
 
+// PUT: Actualizar rol con validación estricta de Sysadmin único
 app.put('/api/usuarios/:id/rol', verificarToken, verificarSysadmin, (req, res) => {
     const { id } = req.params;
     const { rol } = req.body;
@@ -222,13 +228,56 @@ app.put('/api/usuarios/:id/rol', verificarToken, verificarSysadmin, (req, res) =
         return res.status(400).json({ mensaje: "Rol inválido." });
     }
 
-    const query = `UPDATE usuarios SET rol = ? WHERE id = ?`;
-    db.run(query, [rol, id], function(err) {
-        if (err) {
-            return res.status(500).json({ mensaje: "Error al actualizar el rol en la base de datos." });
+    db.get(`SELECT rol FROM usuarios WHERE id = ?`, [id], (err, usuarioActual) => {
+        if (err || !usuarioActual) return res.status(404).json({ mensaje: "Usuario no encontrado." });
+
+        if (usuarioActual.rol === 'sysadmin' && rol !== 'sysadmin') {
+            db.get(`SELECT COUNT(*) as count FROM usuarios WHERE rol = 'sysadmin'`, (err, row) => {
+                if (row.count <= 1) {
+                    return res.status(400).json({ mensaje: "Acción denegada: Debe existir al menos un sysadmin en el sistema." });
+                }
+                ejecutarUpdateRol();
+            });
+        } else {
+            ejecutarUpdateRol();
         }
-        res.json({ mensaje: "¡Rol actualizado con éxito!" });
     });
+
+    function ejecutarUpdateRol() {
+        db.run(`UPDATE usuarios SET rol = ? WHERE id = ?`, [rol, id], function(err) {
+            if (err) {
+                return res.status(500).json({ mensaje: "Error al actualizar el rol en la base de datos." });
+            }
+            res.json({ mensaje: "¡Rol actualizado con éxito!" });
+        });
+    }
+});
+
+// DELETE: Eliminar usuario con validación estricta de Sysadmin único
+app.delete('/api/usuarios/:id', verificarToken, verificarSysadmin, (req, res) => {
+    const { id } = req.params;
+
+    db.get(`SELECT rol, nombre FROM usuarios WHERE id = ?`, [id], (err, usuario) => {
+        if (err || !usuario) return res.status(404).json({ mensaje: "Usuario no encontrado." });
+
+        if (usuario.rol === 'sysadmin') {
+            db.get(`SELECT COUNT(*) as count FROM usuarios WHERE rol = 'sysadmin'`, (err, row) => {
+                if (row.count <= 1) {
+                    return res.status(400).json({ mensaje: "Acción denegada: No se puede eliminar al único sysadmin del sistema." });
+                }
+                ejecutarDelete();
+            });
+        } else {
+            ejecutarDelete();
+        }
+    });
+
+    function ejecutarDelete() {
+        db.run(`DELETE FROM usuarios WHERE id = ?`, [id], function(err) {
+            if (err) return res.status(500).json({ mensaje: 'Error al eliminar el usuario.' });
+            res.json({ mensaje: "Usuario eliminado con éxito." });
+        });
+    }
 });
 
 app.post('/api/usuarios/crear-admin', verificarToken, verificarSysadmin, (req, res) => {

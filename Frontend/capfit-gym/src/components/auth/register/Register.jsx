@@ -4,7 +4,7 @@ import { useAppContext } from "../../context/AppContext";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "../login/Login.css";
 
-const Register = ({ onRegister }) => {
+const Register = () => {
     const { setAlertMessage } = useAppContext();
 
     const [formData, setFormData] = useState({
@@ -84,10 +84,12 @@ const Register = ({ onRegister }) => {
             body: JSON.stringify(newUser)
         })
         .then(res => {
-            if (!res.ok) {
-                return res.json().then(data => { throw new Error(data.mensaje || 'Error al registrarse'); });
-            }
-            return res.json();
+            return res.json().then(data => {
+                if (!res.ok) {
+                    throw new Error(data.mensaje || data.error || 'Error al registrarse');
+                }
+                return data;
+            });
         })
         .then(data => {
             localStorage.setItem('token', data.token);
@@ -100,12 +102,15 @@ const Register = ({ onRegister }) => {
             });
 
             setTimeout(() => {
-                if (onRegister) onRegister(data.rol);
-            }, 1200);
+                window.location.href = "/"; 
+            }, 1000);
         })
         .catch(err => {
+            // Aquí atrapamos si el DNI o email ya existen en la base de datos
             setAlertMessage({
-                text: "Error: " + err.message,
+                text: err.message.includes("dni") || err.message.includes("DNI") 
+                    ? "El DNI ingresado ya se encuentra registrado en el sistema." 
+                    : "Error: " + err.message,
                 variant: "danger"
             });
         });

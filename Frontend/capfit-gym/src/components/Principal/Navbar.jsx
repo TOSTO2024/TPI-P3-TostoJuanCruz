@@ -8,14 +8,14 @@ import capfitLogoNormal from "../../img/logoNormal.jpeg";
 const Navbar = () => {
     const [showLocationModal, setShowLocationModal] = useState(false);
     const {
-        cart,
-        showFloatingCart,
-        setShowFloatingCart,
-        setAlertMessage,
-        token,
-        role,
-        logout
-    } = useAppContext();
+        cart = [],
+        showFloatingCart = false,
+        setShowFloatingCart = () => {},
+        setAlertMessage = () => {},
+        token = null,
+        role = null,
+        logout = () => {}
+    } = useAppContext() || {};
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -38,6 +38,9 @@ const Navbar = () => {
             setShowFloatingCart(!showFloatingCart);
         }
     };
+
+    const safeCart = Array.isArray(cart) ? cart : [];
+    const totalCartItems = safeCart.reduce((acc, item) => acc + (item?.quantity || 0), 0);
 
     return (
         <>
@@ -100,9 +103,10 @@ const Navbar = () => {
                         }}
                     >
                         🛒
-                        {cart.length > 0 && (
+                        {safeCart.length > 0 && (
                             <span className="badge bg-dark text-warning rounded-pill position-absolute top-0 start-100 translate-middle" style={{ fontSize: "10px" }}>
-                                {cart.reduce((acc, item) => acc + item.quantity, 0)}                            </span>
+                                {totalCartItems}
+                            </span>
                         )}
                     </button>
 
