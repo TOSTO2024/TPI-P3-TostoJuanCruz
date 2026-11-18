@@ -1,75 +1,87 @@
 import { useState } from "react";
-import { Button, Form, Card, Alert } from "react-bootstrap";
+import { Button, Form, Card } from "react-bootstrap";
+import { useAppContext } from "../../context/AppContext";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import "../login/Login.css"
+import "../login/Login.css";
 
 const Register = ({ onRegister }) => {
-    const [username, setUsername] = useState("");
-    const [lastName, setLastname] = useState("");
-    const [email, setEmail] = useState("");
-    const [dni, setDni] = useState("");
-    const [fecha, setFecha] = useState("");
-    const [password, setPassword] = useState("");
+    const { setAlertMessage } = useAppContext();
+
+    const [formData, setFormData] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        dni: "",
+        birthDate: "",
+        password: ""
+    });
 
     const [touched, setTouched] = useState({
-        username: false,
+        firstName: false,
         lastName: false,
         email: false,
         dni: false,
-        fecha: false,
+        birthDate: false,
         password: false
     });
 
-    const [mensajeFeedback, setMensajeFeedback] = useState(null);
+    const lettersOnlyRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,30}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const dniRegex = /^\d{7,8}$/;
 
-    const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,30}$/;
-    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const regexDni = /^\d{7,8}$/;
+    const today = new Date();
+    const birthDateObj = new Date(formData.birthDate);
+    const age = today.getFullYear() - birthDateObj.getFullYear() - 
+        (today.getMonth() < birthDateObj.getMonth() || (today.getMonth() === birthDateObj.getMonth() && today.getDate() < birthDateObj.getDate()) ? 1 : 0);
 
-    const hoy = new Date();
-    const nacimiento = new Date(fecha);
-    const edad = hoy.getFullYear() - nacimiento.getFullYear() - 
-        (hoy.getMonth() < nacimiento.getMonth() || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate()) ? 1 : 0);
+    const validations = {
+        firstName: lettersOnlyRegex.test(formData.firstName),
+        lastName: lettersOnlyRegex.test(formData.lastName),
+        email: emailRegex.test(formData.email),
+        dni: dniRegex.test(formData.dni),
+        birthDate: Boolean(formData.birthDate) && birthDateObj <= today && age >= 5 && age <= 100,
+        password: formData.password.length >= 8
+    };
 
-    const esUsernameValido = soloLetras.test(username);
-    const esLastNameValido = soloLetras.test(lastName);
-    const esEmailValido = regexEmail.test(email);
-    const esDniValido = regexDni.test(dni);
-    const esFechaValido = fecha && nacimiento <= hoy && edad >= 5 && edad <= 100;
-    const esPasswordValido = password.length >= 8; 
+    const handleChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        setTouched(prev => ({ ...prev, [field]: true }));
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         
         setTouched({
-            username: true,
+            firstName: true,
             lastName: true,
             email: true,
             dni: true,
-            fecha: true,
+            birthDate: true,
             password: true
         });
-        setMensajeFeedback(null);
 
-        if (!esUsernameValido || !esLastNameValido || !esEmailValido || !esDniValido || !esFechaValido || !esPasswordValido) {
-            setMensajeFeedback({
+        const isFormValid = Object.values(validations).every(Boolean);
+
+        if (!isFormValid) {
+            setAlertMessage({
                 texto: "Por favor, complete correctamente todos los campos marcados en rojo.",
                 variante: "danger"
             });
             return;
         }
 
-        const nuevoUsuario = {
-            nombre: `${username} ${lastName}`, 
-            email,
-            password,
-            dni,
-            fechaNacimiento: fecha
+        const newUser = {
+            nombre: `${formData.firstName} ${formData.lastName}`, 
+            email: formData.email,
+            password: formData.password,
+            dni: formData.dni,
+            fechaNacimiento: formData.birthDate
         };
 
         fetch('http://localhost:5000/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(nuevoUsuario)
+            body: JSON.stringify(newUser)
         })
         .then(res => {
             if (!res.ok) {
@@ -82,19 +94,17 @@ const Register = ({ onRegister }) => {
             localStorage.setItem('rol', data.rol);
             localStorage.setItem('nombre', data.nombre);
 
-            setMensajeFeedback({
+            setAlertMessage({
                 texto: `¡Cuenta creada con éxito! Bienvenido ${data.nombre}`,
                 variante: "success"
             });
 
             setTimeout(() => {
-                if (onRegister) {
-                    onRegister(data.rol);
-                }
+                if (onRegister) onRegister(data.rol);
             }, 1200);
         })
         .catch(err => {
-            setMensajeFeedback({
+            setAlertMessage({
                 texto: "Error: " + err.message,
                 variante: "danger"
             });
@@ -107,31 +117,16 @@ const Register = ({ onRegister }) => {
                 <Card.Body>
                     <h3 className="text-center mb-3 fw-bold text-white fs-2">Registrarse</h3>
 
-                    {mensajeFeedback && (
-                        <Alert 
-                            variant={mensajeFeedback.variante} 
-                            dismissible 
-                            onClose={() => setMensajeFeedback(null)}
-                            className="fw-semibold text-center"
-                        >
-                            {mensajeFeedback.texto}
-                        </Alert>
-                    )}
-
                     <Form onSubmit={handleSubmit}>
-                    
-                        <Form.Group className="mb-3" controlId="formUsername">
+                        <Form.Group className="mb-3" controlId="formFirstName">
                             <Form.Label className="fw-semibold text-warning">Nombre</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="Ingrese su nombre"
-                                value={username}
-                                onChange={(e) => {
-                                    setUsername(e.target.value);
-                                    setTouched(prev => ({ ...prev, username: true }));
-                                }}
-                                isInvalid={touched.username && !esUsernameValido}
-                                isValid={touched.username && esUsernameValido}
+                                value={formData.firstName}
+                                onChange={(e) => handleChange("firstName", e.target.value)}
+                                isInvalid={touched.firstName && !validations.firstName}
+                                isValid={touched.firstName && validations.firstName}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
@@ -144,13 +139,10 @@ const Register = ({ onRegister }) => {
                             <Form.Control
                                 type="text"
                                 placeholder="Ingrese su apellido"
-                                value={lastName}
-                                onChange={(e) => {
-                                    setLastname(e.target.value);
-                                    setTouched(prev => ({ ...prev, lastName: true }));
-                                }}
-                                isInvalid={touched.lastName && !esLastNameValido}
-                                isValid={touched.lastName && esLastNameValido}
+                                value={formData.lastName}
+                                onChange={(e) => handleChange("lastName", e.target.value)}
+                                isInvalid={touched.lastName && !validations.lastName}
+                                isValid={touched.lastName && validations.lastName}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
@@ -163,13 +155,10 @@ const Register = ({ onRegister }) => {
                             <Form.Control
                                 type="email"
                                 placeholder="Ingrese su email"
-                                value={email}
-                                onChange={(e) => {
-                                    setEmail(e.target.value);
-                                    setTouched(prev => ({ ...prev, email: true }));
-                                }}
-                                isInvalid={touched.email && !esEmailValido}
-                                isValid={touched.email && esEmailValido}
+                                value={formData.email}
+                                onChange={(e) => handleChange("email", e.target.value)}
+                                isInvalid={touched.email && !validations.email}
+                                isValid={touched.email && validations.email}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
@@ -182,13 +171,10 @@ const Register = ({ onRegister }) => {
                             <Form.Control
                                 type="text"
                                 placeholder="Ingrese su DNI"
-                                value={dni}
-                                onChange={(e) => {
-                                    setDni(e.target.value);
-                                    setTouched(prev => ({ ...prev, dni: true }));
-                                }}
-                                isInvalid={touched.dni && !esDniValido}
-                                isValid={touched.dni && esDniValido}
+                                value={formData.dni}
+                                onChange={(e) => handleChange("dni", e.target.value)}
+                                isInvalid={touched.dni && !validations.dni}
+                                isValid={touched.dni && validations.dni}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
@@ -196,22 +182,19 @@ const Register = ({ onRegister }) => {
                             </Form.Control.Feedback>
                         </Form.Group>
 
-                        <Form.Group className="mb-3" controlId="formFecha">
+                        <Form.Group className="mb-3" controlId="formBirthDate">
                             <Form.Label className="fw-semibold text-warning">Fecha de Nacimiento</Form.Label>
                             <Form.Control
                                 type="date"
-                                value={fecha}
-                                onChange={(e) => {
-                                    setFecha(e.target.value);
-                                    setTouched(prev => ({ ...prev, fecha: true }));
-                                }}
-                                isInvalid={touched.fecha && !esFechaValido}
-                                isValid={touched.fecha && esFechaValido}
+                                value={formData.birthDate}
+                                onChange={(e) => handleChange("birthDate", e.target.value)}
+                                isInvalid={touched.birthDate && !validations.birthDate}
+                                isValid={touched.birthDate && validations.birthDate}
                                 className="py-2 text-white"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
-                                {!fecha ? "Por favor, seleccione su fecha de nacimiento." : 
-                                nacimiento > hoy ? "La fecha no puede ser futura." : 
+                                {!formData.birthDate ? "Por favor, seleccione su fecha de nacimiento." : 
+                                birthDateObj > today ? "La fecha no puede ser futura." : 
                                 "Debes tener entre 5 y 100 años para registrarte."}
                             </Form.Control.Feedback>
                         </Form.Group>
@@ -221,24 +204,20 @@ const Register = ({ onRegister }) => {
                             <Form.Control
                                 type="password"
                                 placeholder="Ingrese su contraseña"
-                                value={password}
-                                onChange={(e) => {
-                                    setPassword(e.target.value);
-                                    setTouched(prev => ({ ...prev, password: true }));
-                                }}
-                                isInvalid={touched.password && !esPasswordValido}
-                                isValid={touched.password && esPasswordValido}
+                                value={formData.password}
+                                onChange={(e) => handleChange("password", e.target.value)}
+                                isInvalid={touched.password && !validations.password}
+                                isValid={touched.password && validations.password}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
-                                La contraseña requiere al menos 8 caracteres ({password.length}/8).
+                                La contraseña requiere al menos 8 caracteres ({formData.password.length}/8).
                             </Form.Control.Feedback>
                         </Form.Group>
 
                         <Button variant="warning" type="submit" className="w-100 mt-2 py-3 fw-bold fs-5 text-dark">
                             Crear Cuenta
                         </Button>
-
                     </Form>
                 </Card.Body>
             </Card>

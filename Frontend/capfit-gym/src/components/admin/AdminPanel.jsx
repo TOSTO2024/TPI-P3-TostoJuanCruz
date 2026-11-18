@@ -5,7 +5,7 @@ import ListaClientes from "./ListaClientes.jsx";
 import InscriptosClases from "./InscriptosClases.jsx"; 
 
 const AdminPanel = () => {
-    const [seccionActiva, setSeccionActiva] = useState("menu");
+    const [activeSection, setActiveSection] = useState("menu");
 
     return (
         <Container className="py-4 text-white">
@@ -13,7 +13,7 @@ const AdminPanel = () => {
                 Panel de <span className="text-warning">Administración</span>
             </h2>
 
-            {seccionActiva === "menu" && (
+            {activeSection === "menu" && (
                 <Row className="g-4 justify-content-center">
                     <Col md={4}>
                         <Card className="bg-dark text-white border border-warning h-100 shadow-lg text-center p-3">
@@ -25,7 +25,7 @@ const AdminPanel = () => {
                                         Agregá, modificá o eliminá productos, precios y stock.
                                     </Card.Text>
                                 </div>
-                                <Button variant="warning" className="fw-bold text-dark mt-4 py-2" onClick={() => setSeccionActiva("productos")}>
+                                <Button variant="warning" className="fw-bold text-dark mt-4 py-2" onClick={() => setActiveSection("products")}>
                                     Administrar Ítems
                                 </Button>
                             </Card.Body>
@@ -42,7 +42,7 @@ const AdminPanel = () => {
                                         Visualizá los usuarios registrados y sus roles.
                                     </Card.Text>
                                 </div>
-                                <Button variant="warning" className="fw-bold text-dark mt-4 py-2" onClick={() => setSeccionActiva("clientes")}>
+                                <Button variant="warning" className="fw-bold text-dark mt-4 py-2" onClick={() => setActiveSection("clients")}>
                                     Ver Clientes
                                 </Button>
                             </Card.Body>
@@ -59,7 +59,7 @@ const AdminPanel = () => {
                                         Consultá los inscriptos en los distintos turnos.
                                     </Card.Text>
                                 </div>
-                                <Button variant="warning" className="fw-bold text-dark mt-4 py-2" onClick={() => setSeccionActiva("clases")}>
+                                <Button variant="warning" className="fw-bold text-dark mt-4 py-2" onClick={() => setActiveSection("classes")}>
                                     Ver Inscriptos
                                 </Button>
                             </Card.Body>
@@ -68,17 +68,17 @@ const AdminPanel = () => {
                 </Row>
             )}
 
-            {seccionActiva !== "menu" && (
+            {activeSection !== "menu" && (
                 <div className="mb-4">
-                    <Button variant="outline-warning" className="fw-semibold" onClick={() => setSeccionActiva("menu")}>
+                    <Button variant="outline-warning" className="fw-semibold" onClick={() => setActiveSection("menu")}>
                         ← Volver al Panel Principal
                     </Button>
                 </div>
             )}
 
-            {seccionActiva === "productos" && <GestionProductos />}
-            {seccionActiva === "clientes" && <ListaClientes />}
-            {seccionActiva === "clases" && <InscriptosClases />}
+            {activeSection === "products" && <GestionProductos />}
+            {activeSection === "clients" && <ListaClientes />}
+            {activeSection === "classes" && <InscriptosClases />}
         </Container>
     );
 };

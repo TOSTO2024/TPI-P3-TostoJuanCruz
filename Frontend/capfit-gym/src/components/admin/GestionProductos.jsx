@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { Table, Button, Form, Modal, Alert } from "react-bootstrap";
+import { useAppContext } from "../../components/context/AppContext"; 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const GestionProductos = () => {
-    const [productos, setProductos] = useState([]);
+    const { token } = useAppContext();
+    const [products, setProducts] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [modoEdicion, setModoEdicion] = useState(false);
-    const [idActual, setIdActual] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentId, setCurrentId] = useState(null);
     const [feedback, setFeedback] = useState(null);
 
-    const [form, setForm] = useState({
+    const [formData, setFormData] = useState({
         nombre: "",
         precio: "",
         stock: "",
@@ -17,35 +19,33 @@ const GestionProductos = () => {
         descripcion: ""
     });
 
-    const token = localStorage.getItem("token");
-
-    const cargarProductos = () => {
+    const fetchProducts = () => {
         fetch('http://localhost:5000/api/productos')
             .then(res => res.json())
-            .then(data => setProductos(data))
+            .then(data => setProducts(data))
             .catch(() => setFeedback({ texto: "Error al cargar los productos.", variante: "danger" }));
     };
 
     useEffect(() => {
-        cargarProductos();
+        fetchProducts();
     }, []);
     
-    const handleSave = (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
 
-        const precioNum = Number(form.precio);
-        const stockNum = Number(form.stock);
+        const priceNum = Number(formData.precio);
+        const stockNum = Number(formData.stock);
 
-        if (precioNum < 0 || stockNum < 0) {
+        if (priceNum < 0 || stockNum < 0) {
             setFeedback({ texto: "Error: El precio y el stock no pueden ser negativos.", variante: "danger" });
             return; 
         }
 
-        const url = modoEdicion 
-            ? `http://localhost:5000/api/productos/${idActual}` 
+        const url = isEditing 
+            ? `http://localhost:5000/api/productos/${currentId}` 
             : 'http://localhost:5000/api/productos';
         
-        const method = modoEdicion ? 'PUT' : 'POST';
+        const method = isEditing ? 'PUT' : 'POST';
 
         fetch(url, {
             method: method,
@@ -53,28 +53,28 @@ const GestionProductos = () => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(form)
+            body: JSON.stringify(formData)
         })
         .then(res => {
             if (!res.ok) throw new Error("Error al guardar el producto");
             return res.json();
         })
         .then(() => {
-            cargarProductos();
+            fetchProducts();
             setShowModal(false);
             resetForm();
             setFeedback({ 
-                texto: modoEdicion ? "¡Producto actualizado con éxito!" : "¡Producto creado con éxito!", 
+                texto: isEditing ? "¡Producto actualizado con éxito!" : "¡Producto creado con éxito!", 
                 variante: "success" 
             });
         })
         .catch(err => setFeedback({ texto: err.message, variante: "danger" }));
     };
 
-    const handleEdit = (prod) => {
-        setForm(prod);
-        setIdActual(prod.id);
-        setModoEdicion(true);
+    const handleEdit = (product) => {
+        setFormData(product);
+        setCurrentId(product.id);
+        setIsEditing(true);
         setShowModal(true);
     };
 
@@ -87,16 +87,16 @@ const GestionProductos = () => {
         })
         .then(res => {
             if (!res.ok) throw new Error("No se pudo eliminar");
-            cargarProductos();
+            fetchProducts();
             setFeedback({ texto: "Producto eliminado correctamente.", variante: "warning" });
         })
         .catch(err => setFeedback({ texto: err.message, variante: "danger" }));
     };
 
     const resetForm = () => {
-        setForm({ nombre: "", precio: "", stock: "", imagen: "", descripcion: "" });
-        setModoEdicion(false);
-        setIdActual(null);
+        setFormData({ nombre: "", precio: "", stock: "", imagen: "", descripcion: "" });
+        setIsEditing(false);
+        setCurrentId(null);
     };
 
     return (
@@ -126,7 +126,7 @@ const GestionProductos = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {productos.map(p => (
+                    {products.map(p => (
                         <tr key={p.id}>
                             <td>{p.id}</td>
                             <td><img src={p.imagen} alt={p.nombre} style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "5px" }} /></td>
@@ -144,13 +144,13 @@ const GestionProductos = () => {
 
             <Modal show={showModal} onHide={() => setShowModal(false)} centered contentClassName="bg-dark text-white border border-warning">
                 <Modal.Header closeButton closeVariant="white">
-                    <Modal.Title className="text-warning">{modoEdicion ? "Editar Producto" : "Nuevo Producto"}</Modal.Title>
+                    <Modal.Title className="text-warning">{isEditing ? "Editar Producto" : "Nuevo Producto"}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form onSubmit={handleSave}>
+                    <Form onSubmit={handleSubmit}>
                         <Form.Group className="mb-3">
                             <Form.Label>Nombre</Form.Label>
-                            <Form.Control type="text" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required />
+                            <Form.Control type="text" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} required />
                         </Form.Group>
                         
                         <Form.Group className="mb-3">
@@ -159,8 +159,8 @@ const GestionProductos = () => {
                                 type="number" 
                                 min="0" 
                                 step="0.01" 
-                                value={form.precio} 
-                                onChange={e => setForm({...form, precio: e.target.value})} 
+                                value={formData.precio} 
+                                onChange={e => setFormData({...formData, precio: e.target.value})} 
                                 required 
                             />
                         </Form.Group>
@@ -170,22 +170,24 @@ const GestionProductos = () => {
                             <Form.Control 
                                 type="number" 
                                 min="0" 
-                                value={form.stock} 
-                                onChange={e => setForm({...form, stock: e.target.value})} 
+                                value={formData.stock} 
+                                onChange={e => setFormData({...formData, stock: e.target.value})} 
                                 required 
                             />
                         </Form.Group>
 
                         <Form.Group className="mb-3">
                             <Form.Label>URL de Imagen</Form.Label>
-                            <Form.Control type="text" value={form.imagen} onChange={e => setForm({...form, imagen: e.target.value})} />
+                            <Form.Control type="text" value={formData.imagen} onChange={e => setFormData({...formData, imagen: e.target.value})} />
                         </Form.Group>
+
                         <Form.Group className="mb-3">
                             <Form.Label>Descripción</Form.Label>
-                            <Form.Control as="textarea" rows={2} value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} />
+                            <Form.Control as="textarea" rows={2} value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} />
                         </Form.Group>
+
                         <Button variant="warning" type="submit" className="w-100 fw-bold text-dark">
-                            {modoEdicion ? "Guardar Cambios" : "Crear Producto"}
+                            {isEditing ? "Guardar Cambios" : "Crear Producto"}
                         </Button>
                     </Form>
                 </Modal.Body>

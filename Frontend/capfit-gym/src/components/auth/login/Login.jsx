@@ -1,32 +1,27 @@
 import { useState } from "react";
-import { Button, Form, Card, Alert } from "react-bootstrap";
+import { Button, Form, Card } from "react-bootstrap";
+import { useAppContext } from "../../context/AppContext"; 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./Login.css";
 
 const Login = ({ onLoginSuccess }) => {
+    const { setAlertMessage } = useAppContext();
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    
-    const [emailTocado, setEmailTocado] = useState(false);
-    const [passwordTocado, setPasswordTocado] = useState(false);
-    const [mensajeFeedback, setMensajeFeedback] = useState(null);
+    const [emailTouched, setEmailTouched] = useState(false);
+    const [passwordTouched, setPasswordTouched] = useState(false);
 
-    const validarEmail = (email) => {
-        const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regexEmail.test(email);
-    };
-
-    const esEmailValido = validarEmail(email);
-    const esPasswordValido = password.length >= 8;
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isPasswordValid = password.length >= 8;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setEmailTocado(true);
-        setPasswordTocado(true);
-        setMensajeFeedback(null);
+        setEmailTouched(true);
+        setPasswordTouched(true);
 
-        if (!esEmailValido || !esPasswordValido) {
-            setMensajeFeedback({
+        if (!isEmailValid || !isPasswordValid) {
+            setAlertMessage({
                 texto: "Por favor, corrige los campos antes de ingresar.",
                 variante: "danger"
             });
@@ -50,19 +45,17 @@ const Login = ({ onLoginSuccess }) => {
             localStorage.setItem('nombre', data.nombre);
             localStorage.setItem('email', email);
 
-            setMensajeFeedback({
+            setAlertMessage({
                 texto: `¡Bienvenido ${data.nombre} (${data.rol})! Redirigiendo...`,
                 variante: "success"
             });
 
             setTimeout(() => {
-                if (onLoginSuccess) {
-                    onLoginSuccess(data.rol);
-                }
+                if (onLoginSuccess) onLoginSuccess(data.rol);
             }, 800);
         })
         .catch(err => {
-            setMensajeFeedback({
+            setAlertMessage({
                 texto: "Error: " + err.message,
                 variante: "danger"
             });
@@ -75,17 +68,6 @@ const Login = ({ onLoginSuccess }) => {
                 <Card.Body>
                     <h3 className="text-center mb-4 fw-bold text-white fs-2">Iniciar Sesión</h3>
 
-                    {mensajeFeedback && (
-                        <Alert 
-                            variant={mensajeFeedback.variante} 
-                            dismissible 
-                            onClose={() => setMensajeFeedback(null)}
-                            className="fw-semibold text-center"
-                        >
-                            {mensajeFeedback.texto}
-                        </Alert>
-                    )}
-
                     <Form onSubmit={handleSubmit}>
                         <Form.Group className="mb-4" controlId="formEmail">
                             <Form.Label className="fw-semibold fs-5 text-warning">Email</Form.Label>
@@ -95,10 +77,10 @@ const Login = ({ onLoginSuccess }) => {
                                 value={email}
                                 onChange={(e) => {
                                     setEmail(e.target.value);
-                                    setEmailTocado(true);
+                                    setEmailTouched(true);
                                 }}
-                                isInvalid={emailTocado && !esEmailValido}
-                                isValid={emailTocado && esEmailValido}
+                                isInvalid={emailTouched && !isEmailValid}
+                                isValid={emailTouched && isEmailValid}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold mt-1">
@@ -114,10 +96,10 @@ const Login = ({ onLoginSuccess }) => {
                                 value={password}
                                 onChange={(e) => {
                                     setPassword(e.target.value);
-                                    setPasswordTocado(true);
+                                    setPasswordTouched(true);
                                 }}
-                                isInvalid={passwordTocado && !esPasswordValido}
-                                isValid={passwordTocado && esPasswordValido}
+                                isInvalid={passwordTouched && !isPasswordValid}
+                                isValid={passwordTouched && isPasswordValid}
                                 className="py-2"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold mt-1">

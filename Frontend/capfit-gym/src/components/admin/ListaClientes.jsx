@@ -1,40 +1,42 @@
 import { useState, useEffect, useCallback } from "react";
+import { useAppContext } from "../../components/context/AppContext";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ListaClientes = () => {
-    const [usuarios, setUsuarios] = useState([]);
+    const { role } = useAppContext();
+    const [users, setUsers] = useState([]);
     const token = localStorage.getItem("token");
-    const rolActual = localStorage.getItem("rol");
 
-    const cargarUsuarios = useCallback(() => {
+    const fetchUsers = useCallback(() => {
         fetch('http://localhost:5000/api/usuarios', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
         .then(res => res.json())
         .then(data => {
             if (Array.isArray(data)) {
-                setUsuarios(data);
+                setUsers(data);
             }
         })
         .catch(err => console.error("Error al obtener clientes:", err));
     }, [token]);
 
     useEffect(() => {
-        cargarUsuarios();
-    }, [cargarUsuarios]);
+        fetchUsers();
+    }, [fetchUsers]);
 
-    const cambiarRol = async (idUsuario, nuevoRol) => {
+    const changeRole = async (userId, newRole) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/usuarios/${idUsuario}/rol`, {
+            const res = await fetch(`http://localhost:5000/api/usuarios/${userId}/rol`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ rol: nuevoRol })
+                body: JSON.stringify({ rol: newRole })
             });
 
             if (res.ok) {
-                cargarUsuarios(); 
+                fetchUsers(); 
             } else {
                 const errorData = await res.json();
                 alert(errorData.mensaje || "Error al actualizar el rol.");
@@ -44,22 +46,22 @@ const ListaClientes = () => {
         }
     };
 
-    const calcularTiempoRestante = (fechaExpiracion) => {
-        if (!fechaExpiracion) return <span className="text-muted">Sin membresía</span>;
+    const calculateRemainingTime = (expirationDate) => {
+        if (!expirationDate) return <span className="text-muted">Sin membresía</span>;
 
-        const diferencia = new Date(fechaExpiracion).getTime() - new Date().getTime();
+        const difference = new Date(expirationDate).getTime() - new Date().getTime();
 
-        if (diferencia <= 0) {
+        if (difference <= 0) {
             return <span className="text-danger small">Expirada ❌</span>;
         }
 
-        const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
-        const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
 
         return (
             <span className="text-warning small fw-bold">
-                ⏱️ {dias}d {horas}h {minutos}m
+                ⏱️ {days}d {hours}h {minutes}m
             </span>
         );
     };
@@ -81,18 +83,18 @@ const ListaClientes = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {usuarios.map(u => (
-                            <tr key={u.id}>
-                                <td>{u.id}</td>
-                                <td>{u.nombre}</td>
-                                <td>{u.email}</td>
-                                <td>{u.dni || "No especificado"}</td>
-                                <td>{calcularTiempoRestante(u.membresia_expiracion)}</td>
+                        {users.map(user => (
+                            <tr key={user.id}>
+                                <td>{user.id}</td>
+                                <td>{user.nombre}</td>
+                                <td>{user.email}</td>
+                                <td>{user.dni || "No especificado"}</td>
+                                <td>{calculateRemainingTime(user.membresia_expiracion)}</td>
                                 <td>
-                                    {rolActual === 'sysadmin' ? (
+                                    {role === 'sysadmin' ? (
                                         <select 
-                                            value={u.rol} 
-                                            onChange={(e) => cambiarRol(u.id, e.target.value)}
+                                            value={user.rol} 
+                                            onChange={(e) => changeRole(user.id, e.target.value)}
                                             className="form-select form-select-sm bg-dark text-warning border-warning fw-bold"
                                         >
                                             <option value="cliente">cliente</option>
@@ -101,7 +103,7 @@ const ListaClientes = () => {
                                         </select>
                                     ) : (
                                         <span className="badge bg-secondary text-dark px-3 py-2 fw-bold" style={{ backgroundColor: "#ffb300" }}>
-                                            {u.rol}
+                                            {user.rol}
                                         </span>
                                     )}
                                 </td>

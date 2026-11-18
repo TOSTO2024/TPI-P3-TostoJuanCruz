@@ -4,16 +4,16 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const MembresiaPago = () => {
     const token = localStorage.getItem("token");
 
-    const [cargando, setCargando] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [qrData, setQrData] = useState(null);
-    const [fechaUltimoPago, setFechaUltimoPago] = useState(null);
-    const [tiempoRestante, setTiempoRestante] = useState({ dias: 0, horas: 0, minutos: 0, segundos: 0 });
+    const [lastPaymentDate, setLastPaymentDate] = useState(null);
+    const [remainingTime, setRemainingTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-    const fechaActual = new Date();
-    const nombreMes = fechaActual.toLocaleString('es-ES', { month: 'long' });
-    const anioActual = fechaActual.getFullYear();
-    const mesCapitalizado = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
-    const conceptoMembresia = `Membresía ${mesCapitalizado} ${anioActual} - Capfit Gym`;
+    const currentDate = new Date();
+    const monthName = currentDate.toLocaleString('es-ES', { month: 'long' });
+    const currentYear = currentDate.getFullYear();
+    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+    const membershipConcept = `Membresía ${capitalizedMonth} ${currentYear} - Capfit Gym`;
 
     useEffect(() => {
         fetch('http://localhost:5000/api/usuarios/perfil', {
@@ -22,43 +22,43 @@ const MembresiaPago = () => {
         .then(res => res.json())
         .then(data => {
             if (data && data.membresia_expiracion) {
-                setFechaUltimoPago(data.membresia_expiracion);
+                setLastPaymentDate(data.membresia_expiracion);
             }
         })
         .catch(err => console.error("Error al obtener perfil:", err));
     }, [token]);
 
     useEffect(() => {
-        if (!fechaUltimoPago) return;
+        if (!lastPaymentDate) return;
 
-        const fechaExpiracionMs = new Date(fechaUltimoPago).getTime();
+        const expirationTimeMs = new Date(lastPaymentDate).getTime();
 
-        const intervalo = setInterval(() => {
-            const ahora = new Date().getTime();
-            const diferencia = fechaExpiracionMs - ahora;
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const difference = expirationTimeMs - now;
 
-            if (diferencia <= 0) {
-                clearInterval(intervalo);
-                setTiempoRestante({ dias: 0, horas: 0, minutos: 0, segundos: 0 });
-                setFechaUltimoPago(null);
+            if (difference <= 0) {
+                clearInterval(interval);
+                setRemainingTime({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+                setLastPaymentDate(null);
             } else {
-                const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
-                const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
-                const segundos = Math.floor((diferencia % (1000 * 60)) / 1000);
+                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
-                setTiempoRestante({ dias, horas, minutos, segundos });
+                setRemainingTime({ days, hours, minutes, seconds });
             }
         }, 1000);
 
-        return () => clearInterval(intervalo);
-    }, [fechaUltimoPago]);
+        return () => clearInterval(interval);
+    }, [lastPaymentDate]);
 
-    const manejarPagoQR = async () => {
-        const confirmado = window.confirm("¿Está seguro que desea ir a pagar?");
-        if (!confirmado) return; 
+    const handleQRPayment = async () => {
+        const confirmed = window.confirm("¿Está seguro que desea ir a pagar?");
+        if (!confirmed) return; 
 
-        setCargando(true);
+        setLoading(true);
         try {
             const res = await fetch('http://localhost:5000/api/crear-preferencia', {
                 method: 'POST',
@@ -67,7 +67,7 @@ const MembresiaPago = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    titulo: conceptoMembresia,
+                    titulo: membershipConcept,
                     precio: 25000 
                 })
             });
@@ -79,14 +79,14 @@ const MembresiaPago = () => {
         } catch (error) {
             console.error("Error en el pago:", error);
         } finally {
-            setCargando(false);
+            setLoading(false);
         }
     };
 
-    const confirmarPagoExitoso = async () => {
-        const fechaExpiracionLocal = new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString();
+    const handleSuccessfulPaymentSimulation = async () => {
+        const localExpirationDate = new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString();
         
-        setFechaUltimoPago(fechaExpiracionLocal);
+        setLastPaymentDate(localExpirationDate);
 
         try {
             await fetch('http://localhost:5000/api/tickets', {
@@ -96,7 +96,7 @@ const MembresiaPago = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    concepto: conceptoMembresia,
+                    concepto: membershipConcept,
                     monto: 25000
                 })
             });
@@ -118,18 +118,18 @@ const MembresiaPago = () => {
             <h2 className="text-warning fw-bold mb-3">Gestión de Membresía</h2>
             <p className="text-white-50 mb-4">Pagá tu cuota mensual escaneando el código QR con Mercado Pago.</p>
 
-            {!fechaUltimoPago ? (
+            {!lastPaymentDate ? (
                 <div className="p-4 rounded-4 shadow-sm" style={{ backgroundColor: "#1a1a1a", border: "1px solid #ffb300" }}>
-                    <h4 className="text-white mb-3">Membresía {mesCapitalizado} {anioActual} - Capfit Gym</h4>
+                    <h4 className="text-white mb-3">Membresía {capitalizedMonth} {currentYear} - Capfit Gym</h4>
                     <p className="fs-3 text-warning fw-bold mb-4">$25.000 ARS</p>
 
                     {!qrData ? (
                         <button 
-                            onClick={manejarPagoQR} 
-                            disabled={cargando}
+                            onClick={handleQRPayment} 
+                            disabled={loading}
                             className="btn btn-warning fw-bold text-dark px-5 py-3 rounded-pill w-100 shadow"
                         >
-                            {cargando ? "Generando pago..." : "Generar Pago con QR 📱"}
+                            {loading ? "Generando pago..." : "Generar Pago con QR 📱"}
                         </button>
                     ) : (
                         <div className="text-center mt-3">
@@ -158,7 +158,7 @@ const MembresiaPago = () => {
                                 )}
                                 
                                 <button 
-                                    onClick={confirmarPagoExitoso}
+                                    onClick={handleSuccessfulPaymentSimulation}
                                     className="btn btn-success fw-bold mt-2 py-2"
                                 >
                                     Simular pago exitoso y generar ticket ✓
@@ -175,7 +175,7 @@ const MembresiaPago = () => {
                         </div>
                         <h5 className="text-warning text-center mb-3">🎫 Comprobante Digital</h5>
                         <hr className="border-secondary" />
-                        <p><strong>Concepto:</strong> {conceptoMembresia}</p>
+                        <p><strong>Concepto:</strong> {membershipConcept}</p>
                         <p><strong>Monto:</strong> $25.000 ARS</p>
                         <p className="text-white-50 small mt-3 mb-0 text-center">Presentá tu cuenta en la recepción de Capfit Gym para validar tu ingreso.</p>
                     </div>
@@ -184,16 +184,16 @@ const MembresiaPago = () => {
                         <h6 className="text-white-50 mb-2">⏱️ Tiempo restante para tu próxima renovación:</h6>
                         <div className="row text-warning fw-bold fs-4 mt-3">
                             <div className="col">
-                                {tiempoRestante.dias} <span className="d-block fs-6 text-white-50">Días</span>
+                                {remainingTime.days} <span className="d-block fs-6 text-white-50">Días</span>
                             </div>
                             <div className="col">
-                                {tiempoRestante.horas} <span className="d-block fs-6 text-white-50">Horas</span>
+                                {remainingTime.hours} <span className="d-block fs-6 text-white-50">Horas</span>
                             </div>
                             <div className="col">
-                                {tiempoRestante.minutos} <span className="d-block fs-6 text-white-50">Minutos</span>
+                                {remainingTime.minutes} <span className="d-block fs-6 text-white-50">Minutos</span>
                             </div>
                             <div className="col">
-                                {tiempoRestante.segundos} <span className="d-block fs-6 text-white-50">Segundos</span>
+                                {remainingTime.seconds} <span className="d-block fs-6 text-white-50">Segundos</span>
                             </div>
                         </div>
                     </div>

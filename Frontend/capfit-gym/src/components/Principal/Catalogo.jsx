@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useAppContext } from '../context/AppContext'; 
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-function CatalogoCliente({ onAgregarAlChanguito }) {
-    const [productos, setProductos] = useState([]);
+const CatalogoCliente = () => {
+    const { addToCart, role } = useAppContext();
+    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const rol = localStorage.getItem("rol");
-    const esAdmin = rol === "admin" || rol === "sysadmin";
+    const isAdmin = role === "admin" || role === "sysadmin";
 
     useEffect(() => {
         fetch('http://localhost:5000/api/productos')
         .then((res) => res.json())
         .then((data) => {
-            setProductos(data);
+            setProducts(data);
             setLoading(false);
         })
         .catch((error) => {
@@ -26,44 +28,44 @@ function CatalogoCliente({ onAgregarAlChanguito }) {
         <div className="catalogo-container" style={{ padding: '20px', color: '#fff' }}>
             <h2>Catálogo de Productos</h2>
             <div className="productos-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                {productos
-                    .filter((prod) => {
-                        if (prod.stock <= 0 && !esAdmin) {
+                {products
+                    .filter((product) => {
+                        if (product.stock <= 0 && !isAdmin) {
                             return false;
                         }
                         return true;
                     })
-                    .map((prod) => {
-                        const sinStock = prod.stock <= 0;
+                    .map((product) => {
+                        const isOutOfStock = product.stock <= 0;
 
                         return (
-                            <div key={prod.id} style={{ background: '#1a1a1a', padding: '15px', borderRadius: '8px', border: '1px solid #333' }}>
-                                <img src={prod.imagen} alt={prod.nombre} style={{ width: '100%', height: '150px', objectFit: 'cover', marginBottom: '10px' }} />
-                                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>{prod.nombre}</h3>
-                                <p style={{ color: '#ffb300', fontWeight: 'bold', fontSize: '16px' }}>${prod.precio}</p>
+                            <div key={product.id} style={{ background: '#1a1a1a', padding: '15px', borderRadius: '8px', border: '1px solid #333' }}>
+                                <img src={product.imagen} alt={product.nombre} style={{ width: '100%', height: '150px', objectFit: 'cover', marginBottom: '10px' }} />
+                                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>{product.nombre}</h3>
+                                <p style={{ color: '#ffb300', fontWeight: 'bold', fontSize: '16px' }}>${product.precio}</p>
                                 
-                                {esAdmin && (
-                                    <p style={{ fontSize: '12px', color: sinStock ? '#ff4d4d' : '#17a2b8', fontWeight: 'bold' }}>
-                                        Stock disponible: {prod.stock}
+                                {isAdmin && (
+                                    <p style={{ fontSize: '12px', color: isOutOfStock ? '#ff4d4d' : '#17a2b8', fontWeight: 'bold' }}>
+                                        Stock disponible: {product.stock}
                                     </p>
                                 )}
 
                                 <button 
-                                    onClick={() => onAgregarAlChanguito(prod)}
-                                    disabled={sinStock} 
+                                    onClick={() => addToCart(product)}
+                                    disabled={isOutOfStock} 
                                     style={{ 
-                                        background: sinStock ? '#444' : '#ffb300', 
-                                        color: sinStock ? '#aaa' : '#0d0d0d', 
+                                        background: isOutOfStock ? '#444' : '#ffb300', 
+                                        color: isOutOfStock ? '#aaa' : '#0d0d0d', 
                                         border: 'none', 
                                         padding: '8px 12px', 
                                         fontWeight: 'bold', 
                                         borderRadius: '4px', 
-                                        cursor: sinStock ? 'not-allowed' : 'pointer',
+                                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                                         marginTop: '10px',
                                         width: '100%'
                                     }}
                                 >
-                                    {sinStock ? 'Sin Stock ❌' : 'Agregar al Changuito 🛒'}
+                                    {isOutOfStock ? 'Sin Stock ❌' : 'Agregar al Changuito 🛒'}
                                 </button>
                             </div>
                         );
@@ -71,6 +73,6 @@ function CatalogoCliente({ onAgregarAlChanguito }) {
             </div>
         </div>
     );
-}
+};
 
 export default CatalogoCliente;

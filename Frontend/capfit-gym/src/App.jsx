@@ -1,8 +1,11 @@
-import { useState } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { Alert } from "react-bootstrap";
+import { AppProvider, useAppContext } from "./components/context/AppContext";
+
+import Navbar from "./components/Principal/Navbar";
+import Inicio from "./components/Principal/Inicio";
 import Login from "./components/auth/login/Login";
 import Register from "./components/auth/register/Register";
-import Carrusel from "./components/Principal/Carrusel";
 import Catalogo from "./components/Principal/Catalogo";
 import Changuito from "./components/Principal/Changuito";
 import AdminPanel from "./components/admin/AdminPanel";
@@ -10,342 +13,43 @@ import ClasesFuncional from "./components/Principal/ClasesFuncional";
 import MembresiaPago from "./components/priv/MembresiaPago";
 import RutasProtegidas from "./components/priv/RutasProtegidas";
 import ErrorPage from "./components/priv/ErrorPage";
-import { Alert, Modal, Button } from "react-bootstrap";
+
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./App.css";
-import capfitLogoNormal from "./img/logoNormal.jpeg";
+import "./app.css";
 
-function AppContent() {
-    const [carrito, setCarrito] = useState([]);
-    const [mostrarChanguitoFlotante, setMostrarChanguitoFlotante] = useState(false);
-    const [mensajeFeedback, setMensajeFeedback] = useState(null);
-    const [mostrarModalUbicacion, setMostrarModalUbicacion] = useState(false);
-
-    const navigate = useNavigate();
-    const location = useLocation();
-
-    const token = localStorage.getItem("token");
-    const rol = localStorage.getItem("rol");
-
-    const agregarAlCarrito = (producto) => {
-        setCarrito((prevCarrito) => {
-            const existe = prevCarrito.find((item) => item.id === producto.id);
-            if (existe) {
-                if (existe.cantidad >= producto.stock) {
-                    return prevCarrito; 
-                }
-                return prevCarrito.map((item) =>
-                    item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
-                );
-            }
-            if (producto.stock <= 0) return prevCarrito;
-            return [...prevCarrito, { ...producto, cantidad: 1 }];
-        });
-
-        setMensajeFeedback({
-            texto: `¡Agregaste "${producto.nombre}" al changuito!`,
-            variante: "success"
-        });
-    };
-
-    const vaciarChanguito = () => {
-        setCarrito([]);
-    };
-
-    const manejarClickCarrito = () => {
-        if (!token) {
-            setMensajeFeedback({
-                texto: "Debes iniciar sesión para ver y usar tu changuito.",
-                variante: "danger"
-            });
-            navigate("/login");
-            return;
-        }
-
-        if (location.pathname !== "/tienda") {
-            navigate("/tienda");
-            setMostrarChanguitoFlotante(false);
-        } else {
-            setMostrarChanguitoFlotante(!mostrarChanguitoFlotante);
-        }
-    };
-
-    const actualizarCantidad = (id, delta) => {
-    setCarrito((prevCarrito) => {
-        return prevCarrito
-            .map((item) => {
-                if (item.id === id) {
-                    const nuevaCantidad = item.cantidad + delta;
-                    if (nuevaCantidad > item.stock) {
-                        return item; 
-                    }
-                    return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : null;
-                }
-                return item;
-            })
-            .filter(Boolean);
-        });
-    };
-
-    const eliminarDelCarrito = (id) => {
-        setCarrito((prevCarrito) => prevCarrito.filter((item) => item.id !== id));
-    };
-
-    const cerrarSesion = () => {
-        localStorage.clear();
-        setCarrito([]);
-        navigate("/");
-        setMensajeFeedback({
-            texto: "Sesión cerrada correctamente.",
-            variante: "warning"
-        });
-    };
-
-    const irARuta = (ruta) => {
-        if (ruta === "/admin") {
-            if (!token || (rol !== "admin" && rol !== "sysadmin")) {
-                setMensajeFeedback({
-                    texto: "Acceso denegado. Debes ser administrador.",
-                    variante: "danger"
-                });
-                navigate("/login");
-                return;
-            }
-        }
-        if ((ruta === "/clases" || ruta === "/membresia") && !token) {
-            setMensajeFeedback({
-                texto: "Debes iniciar sesión para acceder a esta sección.",
-                variante: "danger"
-            });
-            navigate("/login");
-            return;
-        }
-        setMostrarChanguitoFlotante(false);
-        navigate(ruta);
-    };
+function ContenidoApp() {
+    const { mensajeAlerta, setMensajeAlerta } = useAppContext();
+    const navegar = useNavigate();
 
     return (
         <div className="app-container" style={{ backgroundColor: "#0d0d0d", minHeight: "100vh", color: "#fff" }}>
-            <nav className="d-flex justify-content-between align-items-center px-4 py-3" style={{ backgroundColor: "#1a1a1a", borderBottom: "2px solid #ffb300" }}>
-                <div className="d-flex align-items-center" style={{ cursor: "pointer" }} onClick={() => irARuta("/")}>
-                    <img
-                        src={capfitLogoNormal}
-                        alt="Capfit Gym Logo"
-                        style={{ height: "45px", objectFit: "contain" }}
-                        className="me-4"
-                    />
-                    <h3 className="fw-bold m-0 fs-5">
-                        <span className="text-white">CAPFIT</span>
-                        <span className="text-warning"> GYM</span>
-                    </h3>
-                </div>
-
-                <div className="d-flex align-items-center position-relative">
-                    <button
-                        className="btn fw-semibold d-flex align-items-center justify-content-center p-2 me-3 border-0 text-dark btn-mapa-hover"
-                        style={{
-                            width: "42px",
-                            height: "42px",
-                            borderRadius: "50%",
-                            backgroundColor: "#ffb300",
-                            transition: "background-color 0.2s ease"
-                        }}
-                        onClick={() => setMostrarModalUbicacion(true)}
-                        title="Ubicación"
-                    >
-                        <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg">
-                            <g fill="none" fillRule="evenodd" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" transform="translate(4 2)">
-                                <path d="m6.5 16.5407715.6311176-.7118691c.71585099-.8191184 1.36011688-1.5983525 1.93279767-2.3377022l.4733382-.6239608c1.97516433-2.6615039 2.96274653-4.77276704 2.96274653-6.33378943 0-3.33218241-2.6862915-6.03344997-6-6.03344997s-6 2.70126756-6 6.03344997c0 1.56102239.98758218 3.67228553 2.96274653 6.33378943l.4733382.6239608c.73630387.9505925 1.5909423 1.9671163 2.56391527 3.0495713z" />
-                                <circle cx="6.5" cy="6.5" r="2.5" />
-                            </g>
-                        </svg>
-                    </button>
-
-                    <button
-                        className="btn btn-custom-outline fw-semibold px-3 py-2 me-3 text-warning border-warning"
-                        onClick={() => irARuta("/clases")}
-                        title="Clases Funcionales"
-                    >
-                        <svg height="21" viewBox="0 0 21 21" width="21" xmlns="http://www.w3.org/2000/svg"><g fill="none" fillRule="evenodd" transform="translate(2 2)"><path d="m2.5.5h12c1.1045695 0 2 .8954305 2 2v12c0 1.1045695-.8954305 2-2 2h-12c-1.1045695 0-2-.8954305-2-2v-12c0-1.1045695.8954305-2 2-2z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /><path d="m.5 4.5h16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /><g fill="currentColor"><circle cx="8.5" cy="8.5" r="1" /><circle cx="4.5" cy="8.5" r="1" /><circle cx="12.5" cy="8.5" r="1" /><circle cx="8.5" cy="12.5" r="1" /><circle cx="4.5" cy="12.5" r="1" /><circle cx="12.5" cy="12.5" r="1" /></g></g></svg>
-                    </button>
-
-                    {token && rol !== "admin" && rol !== "sysadmin" && (
-                        <button
-                            className="btn btn-custom-outline fw-semibold px-3 py-2 me-3 text-warning border-warning"
-                            style={{ borderRadius: "12px", backgroundColor: "#1a1a1a" }}
-                            onClick={() => irARuta("/membresia")}
-                        >
-                            Membresía
-                        </button>
-                    )}
-
-                    <button
-                        className="btn d-flex align-items-center justify-content-center p-2 me-4 position-relative btn-changuito"
-                        onClick={manejarClickCarrito}
-                        title="Mi Changuito"
-                        style={{
-                            width: "42px",
-                            height: "42px",
-                            borderRadius: "50%",
-                            border: "2px solid #ffb300",
-                            backgroundColor: "#ffb300",
-                            transition: "all 0.2s ease"
-                        }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-cart3 text-dark" viewBox="0 0 16 16">
-                            <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .49.598l-1 5a.5.5 0 0 1-.465.401l-9.397.472L4.415 11H13a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l.84 4.479 9.144-.459L13.89 4H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
-                        </svg>
-                        {carrito.length > 0 && (
-                            <span className="badge bg-dark text-warning rounded-pill position-absolute top-0 start-100 translate-middle" style={{ fontSize: "10px" }}>
-                                {carrito.reduce((acc, item) => acc + item.cantidad, 0)}
-                            </span>
-                        )}
-                    </button>
-
-                    {token && (rol === "admin" || rol === "sysadmin") && (
-                        <button
-                            className="btn btn-custom-outline fw-semibold px-3 py-2 me-3"
-                            onClick={() => irARuta("/admin")}
-                        >
-                            Panel Admin
-                        </button>
-                    )}
-
-                    {location.pathname === "/tienda" && mostrarChanguitoFlotante && (
-                        <div
-                            className="position-absolute shadow-lg p-3 rounded"
-                            style={{
-                                top: "55px",
-                                right: "0px",
-                                width: "350px",
-                                backgroundColor: "#1a1a1a",
-                                border: "2px solid #ffb300",
-                                zIndex: 1000,
-                            }}
-                        >
-                            <h5 className="text-warning fw-bold border-bottom pb-2 mb-3">Tu Changuito</h5>
-                            <Changuito
-                                carrito={carrito}
-                                onActualizarCantidad={actualizarCantidad}
-                                onEliminar={eliminarDelCarrito}
-                                onVaciarCarrito={vaciarChanguito}
-                            />
-                        </div>
-                    )}
-
-                    {!token ? (
-                        <>
-                            <button
-                                className="btn btn-custom-outline fw-semibold px-3 py-2 me-2"
-                                onClick={() => irARuta("/login")}
-                            >
-                                Iniciar Sesión
-                            </button>
-                            <button
-                                className="btn btn-custom-outline fw-semibold px-3 py-2"
-                                onClick={() => irARuta("/register")}
-                            >
-                                Registrarse
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            className="btn btn-outline-danger fw-semibold px-3 py-2"
-                            onClick={cerrarSesion}
-                        >
-                            Cerrar Sesión
-                        </button>
-                    )}
-                </div>
-            </nav>
-
-            <Modal
-                show={mostrarModalUbicacion}
-                onHide={() => setMostrarModalUbicacion(false)}
-                centered
-                contentClassName="bg-dark text-white border border-warning"
-            >
-                <Modal.Header closeButton closeVariant="white" className="border-secondary">
-                    <Modal.Title className="text-warning fw-bold">📍 Ubicación Capfit Gym</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="text-center py-4">
-                    <p className="fs-5 mb-2">¿Deseas abrir Google Maps para ver cómo llegar al gimnasio?</p>
-                    <p className="text-white-50 small">Se abrirá una pestaña externa con la dirección exacta.</p>
-                </Modal.Body>
-                <Modal.Footer className="border-secondary justify-content-center">
-                    <Button variant="outline-secondary" className="px-4 fw-semibold text-white" onClick={() => setMostrarModalUbicacion(false)}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        variant="warning"
-                        className="px-4 fw-bold text-dark"
-                        onClick={() => {
-                            setMostrarModalUbicacion(false);
-                            window.open("https://www.google.com/maps/place/CAPFIT+GYM/@-32.998084,-60.6263982,17z/data=!3m1!4b1!4m6!3m5!1s0x95b7ab004af34eb5:0x4fbc355dd58ea0c0!8m2!3d-32.998084!4d-60.6263982!16s%2Fg%2F11wr0l1d2q?entry=ttu&g_ep=EgoyMDI2MTEwMi4wIKXMDSoASAFQAw%3D%3D", "_blank");
-                        }}
-                    >
-                        Abrir Google Maps 🗺️
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <Navbar />
 
             <main className="py-4">
-                {mensajeFeedback && (
+                {mensajeAlerta && (
                     <div className="container" style={{ maxWidth: "500px" }}>
                         <Alert
-                            variant={mensajeFeedback.variante}
+                            variant={mensajeAlerta.variante}
                             dismissible
-                            onClose={() => setMensajeFeedback(null)}
+                            onClose={() => setMensajeAlerta(null)}
                             className="fw-semibold text-center mb-4"
                         >
-                            {mensajeFeedback.texto}
+                            {mensajeAlerta.texto}
                         </Alert>
                     </div>
                 )}
 
                 <Routes>
-                    <Route
-                        path="/"
-                        element={
-                            <div className="text-center container">
-                                <Carrusel />
-                                <h1 className="display-3 fw-bold text-white mb-3 mt-4">
-                                    BIENVENIDOS A <span className="text-warning">CAPFIT GYM</span>
-                                </h1>
-                                <p className="text-white-50 fs-4 mb-4">Llevá tu rendimiento al siguiente nivel.</p>
-
-                                {!token ? (
-                                    <button className="btn btn-warning btn-lg fw-bold px-5 text-dark" onClick={() => irARuta("/register")}>
-                                        Logueate Aqui
-                                    </button>
-                                ) : (
-                                    <div className="text-warning fs-5 fw-semibold">
-                                        ¡Qué bueno tenerte por acá, {localStorage.getItem("nombre") || "Atleta"}! 💪🏻🔥
-                                    </div>
-                                )}
-                            </div>
-                        }
-                    />
-
-                    <Route
-                        path="/tienda"
-                        element={
-                            <div className="container">
-                                <Catalogo onAgregarAlChanguito={agregarAlCarrito} />
-                            </div>
-                        }
-                    />
-
-                    <Route path="/login" element={<Login onLoginSuccess={() => irARuta("/")} />} />
-                    <Route path="/register" element={<Register onRegister={() => irARuta("/login")} />} />
+                    <Route path="/" element={<Inicio />} />
+                    <Route path="/tienda" element={<div className="container"><Catalogo /></div>} />
+                    <Route path="/login" element={<Login onLoginSuccess={() => navegar("/")} />} />
+                    <Route path="/register" element={<Register onRegister={() => navegar("/login")} />} />
 
                     <Route
                         path="/clases"
                         element={
                             <RutasProtegidas>
-                                <div className="container">
-                                    <ClasesFuncional />
-                                </div>
+                                <div className="container"><ClasesFuncional /></div>
                             </RutasProtegidas>
                         }
                     />
@@ -354,14 +58,7 @@ function AppContent() {
                         path="/changuito"
                         element={
                             <RutasProtegidas>
-                                <div className="container">
-                                    <Changuito
-                                        carrito={carrito}
-                                        onActualizarCantidad={actualizarCantidad}
-                                        onEliminar={eliminarDelCarrito}
-                                        onVaciarCarrito={vaciarChanguito}
-                                    />
-                                </div>
+                                <div className="container"><Changuito /></div>
                             </RutasProtegidas>
                         }
                     />
@@ -370,9 +67,7 @@ function AppContent() {
                         path="/membresia"
                         element={
                             <RutasProtegidas allowedRoles={["cliente"]}>
-                                <div className="container">
-                                    <MembresiaPago />
-                                </div>
+                                <div className="container"><MembresiaPago /></div>
                             </RutasProtegidas>
                         }
                     />
@@ -381,24 +76,21 @@ function AppContent() {
                         path="/admin"
                         element={
                             <RutasProtegidas allowedRoles={["admin", "sysadmin"]}>
-                                <div className="container">
-                                    <AdminPanel />
-                                </div>
+                                <div className="container"><AdminPanel /></div>
                             </RutasProtegidas>
                         }
                     />
-                    
-                    <Route 
-                        path="*" 
-                        element={
-                            <ErrorPage 
-                                codigo="404" 
-                                titulo="Página No Encontrada" 
-                                mensaje="La ruta que estás buscando no existe o fue removida del sistema." 
-                            />
-                        } 
-                    />
 
+                    <Route
+                        path="*"
+                        element={
+                            <ErrorPage
+                                codigo="404"
+                                titulo="Página No Encontrada"
+                                mensaje="La ruta que estás buscando no existe o fue removida del sistema."
+                            />
+                        }
+                    />
                 </Routes>
             </main>
         </div>
@@ -407,9 +99,11 @@ function AppContent() {
 
 function App() {
     return (
-        <BrowserRouter>
-            <AppContent />
-        </BrowserRouter>
+        <AppProvider>
+            <BrowserRouter>
+                <ContenidoApp />
+            </BrowserRouter>
+        </AppProvider>
     );
 }
 

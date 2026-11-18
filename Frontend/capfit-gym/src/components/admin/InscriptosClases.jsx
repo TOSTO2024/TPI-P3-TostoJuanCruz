@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
+import { useAppContext } from "../../components/context/AppContext"; 
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const InscriptosClases = () => {
-    const token = localStorage.getItem("token");
-    const [reservas, setReservas] = useState([]);
-    const [diaSeleccionado, setDiaSeleccionado] = useState("Lunes");
+    const { token } = useAppContext();
+    const [reservations, setReservations] = useState([]);
+    const [selectedDay, setSelectedDay] = useState("Lunes");
 
-    const diasSemana = [
-        { nombre: "Lunes", fecha: "7" },
-        { nombre: "Martes", fecha: "8" },
-        { nombre: "Miércoles", fecha: "9" },
-        { nombre: "Jueves", fecha: "10" },
-        { nombre: "Viernes", fecha: "11" }
+    const weekDays = [
+        { name: "Lunes", label: "Lunes", date: "7" },
+        { name: "Martes", label: "Martes", date: "8" },
+        { name: "Miércoles", label: "Miércoles", date: "9" },
+        { name: "Jueves", label: "Jueves", date: "10" },
+        { name: "Viernes", label: "Viernes", date: "11" }
     ];
 
-    const horariosClases = [
+    const classSchedules = [
         "08:00 - 09:00",
         "10:00 - 11:00",
         "14:00 - 15:00",
@@ -22,7 +24,7 @@ const InscriptosClases = () => {
         "20:00 - 21:00"
     ];
 
-    const cargarTodasLasReservas = useCallback(() => {
+    const fetchAllReservations = useCallback(() => {
         if (!token) return;
 
         fetch('http://localhost:5000/api/admin/reservas', {
@@ -30,14 +32,14 @@ const InscriptosClases = () => {
         })
         .then(res => res.json())
         .then(data => {
-            if (Array.isArray(data)) setReservas(data);
+            if (Array.isArray(data)) setReservations(data);
         })
         .catch(err => console.error("Error cargando inscriptos:", err));
     }, [token]);
 
     useEffect(() => {
-        cargarTodasLasReservas();
-    }, [cargarTodasLasReservas]);
+        fetchAllReservations();
+    }, [fetchAllReservations]);
 
     return (
         <div className="container py-4 text-center">
@@ -45,26 +47,26 @@ const InscriptosClases = () => {
             <p className="text-white-50 mb-4">Seleccioná un día para ver los alumnos anotados por horario.</p>
 
             <div className="d-flex justify-content-center gap-2 overflow-auto pb-4 mb-3">
-                {diasSemana.map((d) => {
-                    const activo = diaSeleccionado === d.nombre;
+                {weekDays.map((day) => {
+                    const isActive = selectedDay === day.name;
                     return (
                         <div
-                            key={d.nombre}
-                            onClick={() => setDiaSeleccionado(d.nombre)}
+                            key={day.name}
+                            onClick={() => setSelectedDay(day.name)}
                             className="p-3 rounded-4 shadow-sm"
                             style={{
                                 minWidth: "90px",
                                 cursor: "pointer",
-                                backgroundColor: activo ? "#ffb300" : "#1a1a1a",
-                                color: activo ? "#000" : "#fff",
-                                border: activo ? "2px solid #ffb300" : "1px solid #333",
-                                transform: activo ? "scale(1.05)" : "scale(1)",
+                                backgroundColor: isActive ? "#ffb300" : "#1a1a1a",
+                                color: isActive ? "#000" : "#fff",
+                                border: isActive ? "2px solid #ffb300" : "1px solid #333",
+                                transform: isActive ? "scale(1.05)" : "scale(1)",
                                 transition: "all 0.2s ease"
                             }}
                         >
-                            <div className="small text-uppercase fw-semibold" style={{ opacity: activo ? 0.9 : 0.6 }}>{d.nombre.substring(0, 3)}</div>
-                            <div className="fs-3 fw-bold my-1">{d.fecha}</div>
-                            <div className="small" style={{ opacity: activo ? 0.9 : 0.5 }}>nov</div>
+                            <div className="small text-uppercase fw-semibold" style={{ opacity: isActive ? 0.9 : 0.6 }}>{day.name.substring(0, 3)}</div>
+                            <div className="fs-3 fw-bold my-1">{day.date}</div>
+                            <div className="small" style={{ opacity: isActive ? 0.9 : 0.5 }}>nov</div>
                         </div>
                     );
                 })}
@@ -74,29 +76,28 @@ const InscriptosClases = () => {
 
             <div className="mx-auto" style={{ maxWidth: "700px" }}>
                 <h4 className="text-warning fw-bold mb-4">
-                    Turnos para el día <span className="text-white">{diaSeleccionado}</span>
+                    Turnos para el día <span className="text-white">{selectedDay}</span>
                 </h4>
 
                 <div className="d-flex flex-column gap-4">
-                    {horariosClases.map((horario) => {
-                        const horarioCompletoBusqueda = `${diaSeleccionado} - ${horario}`;
-                        
-                        const inscriptosTurno = reservas.filter(r => r.horario === horarioCompletoBusqueda);
+                    {classSchedules.map((schedule) => {
+                        const fullSearchSchedule = `${selectedDay} - ${schedule}`;
+                        const shiftRegistrations = reservations.filter(r => r.horario === fullSearchSchedule);
 
                         return (
                             <div 
-                                key={horario}
+                                key={schedule}
                                 className="p-3 rounded-3 shadow-sm text-start"
                                 style={{ backgroundColor: "#1a1a1a", border: "1px solid #ffb300" }}
                             >
                                 <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <span className="fs-5 text-warning fw-bold">⏰ {horario} hs</span>
+                                    <span className="fs-5 text-warning fw-bold">⏰ {schedule} hs</span>
                                     <span className="badge bg-dark text-white-50 border border-secondary">
-                                        Inscriptos: {inscriptosTurno.length}
+                                        Inscriptos: {shiftRegistrations.length}
                                     </span>
                                 </div>
 
-                                {inscriptosTurno.length > 0 ? (
+                                {shiftRegistrations.length > 0 ? (
                                     <div className="table-responsive">
                                         <table className="table table-dark table-striped table-bordered mb-0">
                                             <thead>
@@ -107,11 +108,11 @@ const InscriptosClases = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {inscriptosTurno.map((al, index) => (
-                                                    <tr key={al.id || index}>
+                                                {shiftRegistrations.map((student, index) => (
+                                                    <tr key={student.id || index}>
                                                         <td>{index + 1}</td>
-                                                        <td>{al.nombre}</td>
-                                                        <td>{al.email}</td>
+                                                        <td>{student.nombre}</td>
+                                                        <td>{student.email}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>

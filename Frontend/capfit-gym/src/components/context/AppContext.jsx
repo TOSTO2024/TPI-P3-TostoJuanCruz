@@ -1,94 +1,86 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useState, useContext } from "react";
 
-const AppContext = createContext();
+export const AppContext = createContext();
+
+export const useAppContext = () => useContext(AppContext);
 
 export const AppProvider = ({ children }) => {
-    const [token, setToken] = useState(localStorage.getItem("token") || null);
-    const [rol, setRol] = useState(localStorage.getItem("rol") || null);
-    const [nombre, setNombre] = useState(localStorage.getItem("nombre") || "");
-    const [carrito, setCarrito] = useState([]);
-    const [mensajeFeedback, setMensajeFeedback] = useState(null);
+    const [cart, setCart] = useState([]);
+    const [alertMessage, setAlertMessage] = useState(null);
+    const [showFloatingCart, setShowFloatingCart] = useState(false);
 
-    const iniciarSesionData = (newToken, newRol, newNombre) => {
-        localStorage.setItem("token", newToken);
-        localStorage.setItem("rol", newRol);
-        if (newNombre) localStorage.setItem("nombre", newNombre);
-        setToken(newToken);
-        setRol(newRol);
-        setNombre(newNombre || "");
-    };
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("rol");
+    const userName = localStorage.getItem("nombre");
 
-    const cerrarSesion = () => {
-        localStorage.clear();
-        setToken(null);
-        setRol(null);
-        setNombre("");
-        setCarrito([]);
-        setMensajeFeedback({
-            texto: "Sesión cerrada correctamente.",
-            variante: "warning"
-        });
-    };
+    const addToCart = (product) => {
+        if (product.stock <= 0) return;
 
-    const agregarAlCarrito = (producto) => {
-        setCarrito((prevCarrito) => {
-            const existe = prevCarrito.find((item) => item.id === producto.id);
-            if (existe) {
-                return prevCarrito.map((item) =>
-                    item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
+        setCart((prev) => {
+            const existingItem = prev.find((item) => item.id === product.id);
+            if (existingItem) {
+                if (existingItem.quantity >= product.stock) return prev;
+                return prev.map((item) =>
+                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
                 );
             }
-            return [...prevCarrito, { ...producto, cantidad: 1 }];
+            return [...prev, { ...product, quantity: 1 }];
         });
 
-        setMensajeFeedback({
-            texto: `¡Agregaste "${producto.nombre}" al changuito!`,
+        setAlertMessage({
+            texto: `¡Agregaste "${product.nombre}" al changuito!`,
             variante: "success"
         });
     };
 
-    const actualizarCantidad = (id, delta) => {
-        setCarrito((prevCarrito) => {
-            return prevCarrito
+    const updateQuantity = (id, delta) => {
+        setCart((prev) =>
+            prev
                 .map((item) => {
                     if (item.id === id) {
-                        const nuevaCantidad = item.cantidad + delta;
-                        return nuevaCantidad > 0 ? { ...item, cantidad: nuevaCantidad } : null;
+                        const newQuantity = item.quantity + delta;
+                        if (newQuantity > item.stock) return item;
+                        return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
                     }
                     return item;
                 })
-                .filter(Boolean);
-        });
+                .filter(Boolean)
+        );
     };
 
-    const eliminarDelCarrito = (id) => {
-        setCarrito((prevCarrito) => prevCarrito.filter((item) => item.id !== id));
+    const removeFromCart = (id) => {
+        setCart((prev) => prev.filter((item) => item.id !== id));
     };
 
-    const vaciarChanguito = () => {
-        setCarrito([]);
+    const clearCart = () => setCart([]);
+
+    const logout = (navigate) => {
+        localStorage.clear();
+        setCart([]);
+        setShowFloatingCart(false);
+        setAlertMessage({ texto: "Sesión cerrada correctamente.", variante: "warning" });
+        if (navigate) navigate("/");
     };
 
     return (
         <AppContext.Provider
             value={{
+                cart,
+                addToCart,
+                updateQuantity,
+                removeFromCart,
+                clearCart,
+                alertMessage,
+                setAlertMessage,
+                showFloatingCart,
+                setShowFloatingCart,
                 token,
-                rol,
-                nombre,
-                carrito,
-                mensajeFeedback,
-                setMensajeFeedback,
-                iniciarSesionData,
-                cerrarSesion,
-                agregarAlCarrito,
-                actualizarCantidad,
-                eliminarDelCarrito,
-                vaciarChanguito
+                role,
+                userName,
+                logout
             }}
         >
             {children}
         </AppContext.Provider>
     );
 };
-
-export const useApp = () => useContext(AppContext);
