@@ -28,8 +28,8 @@ export const AppProvider = ({ children }) => {
         });
 
         setAlertMessage({
-            texto: `¡Agregaste "${product.nombre}" al changuito!`,
-            variante: "success"
+            text: `¡Agregaste "${product.nombre}" al changuito!`,
+            variant: "success"
         });
     };
 
@@ -58,7 +58,7 @@ export const AppProvider = ({ children }) => {
         localStorage.clear();
         setCart([]);
         setShowFloatingCart(false);
-        setAlertMessage({ texto: "Sesión cerrada correctamente.", variante: "warning" });
+        setAlertMessage({ text: "Sesión cerrada correctamente.", variant: "warning" });
         if (navigate) navigate("/");
     };
 

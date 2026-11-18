@@ -17,24 +17,24 @@ import ErrorPage from "./components/priv/ErrorPage";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./app.css";
 
-function ContenidoApp() {
-    const { mensajeAlerta, setMensajeAlerta } = useAppContext();
-    const navegar = useNavigate();
+function AppContent() {
+    const { alertMessage, setAlertMessage } = useAppContext();
+    const navigate = useNavigate();
 
     return (
         <div className="app-container" style={{ backgroundColor: "#0d0d0d", minHeight: "100vh", color: "#fff" }}>
             <Navbar />
 
             <main className="py-4">
-                {mensajeAlerta && (
+                {alertMessage && (
                     <div className="container" style={{ maxWidth: "500px" }}>
                         <Alert
-                            variant={mensajeAlerta.variante}
+                            variant={alertMessage.variant}
                             dismissible
-                            onClose={() => setMensajeAlerta(null)}
+                            onClose={() => setAlertMessage(null)}
                             className="fw-semibold text-center mb-4"
                         >
-                            {mensajeAlerta.texto}
+                            {alertMessage.text}
                         </Alert>
                     </div>
                 )}
@@ -42,8 +42,8 @@ function ContenidoApp() {
                 <Routes>
                     <Route path="/" element={<Inicio />} />
                     <Route path="/tienda" element={<div className="container"><Catalogo /></div>} />
-                    <Route path="/login" element={<Login onLoginSuccess={() => navegar("/")} />} />
-                    <Route path="/register" element={<Register onRegister={() => navegar("/login")} />} />
+                    <Route path="/login" element={<Login onLoginSuccess={() => navigate("/")} />} />
+                    <Route path="/register" element={<Register onRegister={() => navigate("/login")} />} />
 
                     <Route
                         path="/clases"
@@ -85,9 +85,9 @@ function ContenidoApp() {
                         path="*"
                         element={
                             <ErrorPage
-                                codigo="404"
-                                titulo="Página No Encontrada"
-                                mensaje="La ruta que estás buscando no existe o fue removida del sistema."
+                                code="404"
+                                title="Página No Encontrada"
+                                message="La ruta que estás buscando no existe o fue removida del sistema."
                             />
                         }
                     />
@@ -101,7 +101,7 @@ function App() {
     return (
         <AppProvider>
             <BrowserRouter>
-                <ContenidoApp />
+                <AppContent />
             </BrowserRouter>
         </AppProvider>
     );

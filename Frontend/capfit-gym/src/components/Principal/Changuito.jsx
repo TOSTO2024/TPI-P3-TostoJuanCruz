@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppContext } from "../context/AppContext"; // Ajustá la ruta según tu estructura
+import { useAppContext } from "../context/AppContext"; 
 import imagenPrototipo from "../../img/prototipo.jpg";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -28,8 +28,8 @@ const Changuito = () => {
 
         if (!token) {
             setAlertMessage({
-                texto: "Debes iniciar sesión para poder finalizar la compra.",
-                variante: "danger"
+                text: "Debes iniciar sesión para poder finalizar la compra.",
+                variant: "danger"
             });
             return;
         }
@@ -52,8 +52,8 @@ const Changuito = () => {
             if (!stockResponse.ok) {
                 const data = await stockResponse.json();
                 setAlertMessage({
-                    texto: data.mensaje || "Error al procesar el stock de la compra.",
-                    variante: "danger"
+                    text: data.mensaje || "Error al procesar el stock de la compra.",
+                    variant: "danger"
                 });
                 return;
             }
@@ -77,8 +77,8 @@ const Changuito = () => {
             }
 
             setAlertMessage({
-                texto: "¡Pedido confirmado y stock actualizado! Redirigiendo a Mercado Pago... 💪🏻😄",
-                variante: "success"
+                text: "¡Pedido confirmado y stock actualizado! Redirigiendo a Mercado Pago... 💪🏻😄",
+                variant: "success"
             });
 
             clearCart();
@@ -86,8 +86,8 @@ const Changuito = () => {
         } catch (error) {
             console.error("Error en la pasarela de compra:", error);
             setAlertMessage({
-                texto: "Error de conexión con el servidor.",
-                variante: "danger"
+                text: "Error de conexión con el servidor.",
+                variant: "danger"
             });
         }
     };
@@ -97,8 +97,8 @@ const Changuito = () => {
 
         if (!token) {
             setAlertMessage({
-                texto: "Debes iniciar sesión para realizar la simulación.",
-                variante: "danger"
+                text: "Debes iniciar sesión para realizar la simulación.",
+                variant: "danger"
             });
             return;
         }

@@ -64,8 +64,8 @@ const Register = ({ onRegister }) => {
 
         if (!isFormValid) {
             setAlertMessage({
-                texto: "Por favor, complete correctamente todos los campos marcados en rojo.",
-                variante: "danger"
+                text: "Por favor, complete correctamente todos los campos marcados en rojo.",
+                variant: "danger"
             });
             return;
         }
@@ -95,8 +95,8 @@ const Register = ({ onRegister }) => {
             localStorage.setItem('nombre', data.nombre);
 
             setAlertMessage({
-                texto: `¡Cuenta creada con éxito! Bienvenido ${data.nombre}`,
-                variante: "success"
+                text: `¡Cuenta creada con éxito! Bienvenido ${data.nombre}`,
+                variant: "success"
             });
 
             setTimeout(() => {
@@ -105,8 +105,8 @@ const Register = ({ onRegister }) => {
         })
         .catch(err => {
             setAlertMessage({
-                texto: "Error: " + err.message,
-                variante: "danger"
+                text: "Error: " + err.message,
+                variant: "danger"
             });
         });
     };

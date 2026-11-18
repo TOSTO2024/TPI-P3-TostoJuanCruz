@@ -23,7 +23,7 @@ const GestionProductos = () => {
         fetch('http://localhost:5000/api/productos')
             .then(res => res.json())
             .then(data => setProducts(data))
-            .catch(() => setFeedback({ texto: "Error al cargar los productos.", variante: "danger" }));
+            .catch(() => setFeedback({ text: "Error al cargar los productos.", variant: "danger" }));
     };
 
     useEffect(() => {
@@ -37,7 +37,7 @@ const GestionProductos = () => {
         const stockNum = Number(formData.stock);
 
         if (priceNum < 0 || stockNum < 0) {
-            setFeedback({ texto: "Error: El precio y el stock no pueden ser negativos.", variante: "danger" });
+            setFeedback({ text: "Error: El precio y el stock no pueden ser negativos.", variant: "danger" });
             return; 
         }
 
@@ -64,11 +64,11 @@ const GestionProductos = () => {
             setShowModal(false);
             resetForm();
             setFeedback({ 
-                texto: isEditing ? "¡Producto actualizado con éxito!" : "¡Producto creado con éxito!", 
-                variante: "success" 
+                text: isEditing ? "¡Producto actualizado con éxito!" : "¡Producto creado con éxito!", 
+                variant: "success" 
             });
         })
-        .catch(err => setFeedback({ texto: err.message, variante: "danger" }));
+        .catch(err => setFeedback({ text: err.message, variant: "danger" }));
     };
 
     const handleEdit = (product) => {
@@ -88,9 +88,9 @@ const GestionProductos = () => {
         .then(res => {
             if (!res.ok) throw new Error("No se pudo eliminar");
             fetchProducts();
-            setFeedback({ texto: "Producto eliminado correctamente.", variante: "warning" });
+            setFeedback({ text: "Producto eliminado correctamente.", variant: "warning" });
         })
-        .catch(err => setFeedback({ texto: err.message, variante: "danger" }));
+        .catch(err => setFeedback({ text: err.message, variant: "danger" }));
     };
 
     const resetForm = () => {
@@ -109,8 +109,8 @@ const GestionProductos = () => {
             </div>
 
             {feedback && (
-                <Alert variant={feedback.variante} dismissible onClose={() => setFeedback(null)}>
-                    {feedback.texto}
+                <Alert variant={feedback.variant} dismissible onClose={() => setFeedback(null)}>
+                    {feedback.text}
                 </Alert>
             )}
 

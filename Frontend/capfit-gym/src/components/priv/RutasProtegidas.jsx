@@ -1,8 +1,8 @@
+import { useAppContext } from "../context/AppContext";
 import ErrorPage from "./ErrorPage"; 
 
 const RutasProtegidas = ({ children, allowedRoles }) => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("rol");
+    const { token, role } = useAppContext();
 
     if (!token) {
         return (
@@ -19,7 +19,7 @@ const RutasProtegidas = ({ children, allowedRoles }) => {
             <ErrorPage 
                 code="403" 
                 title="Acceso Prohibido" 
-                message="Tu usuario no cuenta con los privilegios de administrador necesarios para ver esta página." 
+                message="Tu usuario no cuenta con los privilegios necesarios para ver esta página." 
             />
         );
     }

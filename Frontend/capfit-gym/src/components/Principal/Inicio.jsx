@@ -3,7 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import Carrusel from "./Carrusel";
 
 const Inicio = () => {
-    const { token, nombreUsuario } = useAppContext();
+    const { token, userName } = useAppContext();
     const navigate = useNavigate();
 
     return (
@@ -20,7 +20,7 @@ const Inicio = () => {
                 </button>
             ) : (
                 <div className="text-warning fs-5 fw-semibold">
-                    ¡Qué bueno tenerte por acá, {nombreUsuario || "Atleta"}! 💪🏻🔥
+                    ¡Qué bueno tenerte por acá, {userName || "Atleta"}! 💪🏻🔥
                 </div>
             )}
         </div>

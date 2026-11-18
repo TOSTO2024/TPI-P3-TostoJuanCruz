@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAppContext } from "../../components/context/AppContext";
+import { useAppContext } from "../../components/context/AppContext"; 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ListaClientes = () => {
-    const { role } = useAppContext();
+    const { token, role } = useAppContext();
     const [users, setUsers] = useState([]);
-    const token = localStorage.getItem("token");
 
     const fetchUsers = useCallback(() => {
+        if (!token) return;
+
         fetch('http://localhost:5000/api/usuarios', {
             headers: { 'Authorization': `Bearer ${token}` }
         })

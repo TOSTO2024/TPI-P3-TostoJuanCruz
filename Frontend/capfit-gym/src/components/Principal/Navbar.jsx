@@ -28,7 +28,7 @@ const Navbar = () => {
 
     const handleCartClick = () => {
         if (!token) {
-            setAlertMessage({ texto: "Debes iniciar sesión para ver tu changuito.", variante: "danger" });
+            setAlertMessage({ text: "Debes iniciar sesión para ver tu changuito.", variant: "danger" });
             navigate("/login");
             return;
         }

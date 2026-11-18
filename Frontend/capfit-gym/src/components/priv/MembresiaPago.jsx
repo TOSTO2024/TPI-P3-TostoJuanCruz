@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useAppContext } from "../context/AppContext";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const MembresiaPago = () => {
-    const token = localStorage.getItem("token");
+    const { token } = useAppContext();
 
     const [loading, setLoading] = useState(false);
     const [qrData, setQrData] = useState(null);
@@ -16,6 +17,8 @@ const MembresiaPago = () => {
     const membershipConcept = `Membresía ${capitalizedMonth} ${currentYear} - Capfit Gym`;
 
     useEffect(() => {
+        if (!token) return;
+
         fetch('http://localhost:5000/api/usuarios/perfil', {
             headers: { 'Authorization': `Bearer ${token}` }
         })

@@ -24,7 +24,7 @@ const Carrusel = () => {
     ];
 
     return (
-        <div className="carusel-container mb-5">
+        <div className="full-width-carousel mb-5">
             <Carousel fade interval={4000} indicators={true} controls={true}>
                 {slides.map((slide) => (
                     <Carousel.Item key={slide.id} style={{ height: '420px' }}>

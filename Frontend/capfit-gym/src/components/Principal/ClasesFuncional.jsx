@@ -3,8 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ClasesFuncional = () => {
-    const { setAlertMessage } = useAppContext();
-    const token = localStorage.getItem("token");
+    const { token, setAlertMessage } = useAppContext();
 
     const [serverReservations, setServerReservations] = useState([]);
     const [selectedDay, setSelectedDay] = useState("Lunes");
@@ -46,8 +45,8 @@ const ClasesFuncional = () => {
     const handleReservationToggle = (schedule) => {
         if (!token) {
             setAlertMessage({
-                texto: "Debes iniciar sesión para poder reservar una clase.",
-                variante: "danger"
+                text: "Debes iniciar sesión para poder reservar una clase.",
+                variant: "danger"
             });
             return;
         }
@@ -65,8 +64,8 @@ const ClasesFuncional = () => {
             .then(res => res.json())
             .then(() => {
                 setAlertMessage({
-                    texto: `Has cancelado tu turno de las ${schedule} el día ${selectedDay}.`,
-                    variante: "warning"
+                    text: `Has cancelado tu turno de las ${schedule} el día ${selectedDay}.`,
+                    variant: "warning"
                 });
                 fetchReservations();
             });
@@ -86,8 +85,8 @@ const ClasesFuncional = () => {
             .then(res => res.json())
             .then(() => {
                 setAlertMessage({
-                    texto: `¡Reserva exitosa para el turno de las ${schedule} (${selectedDay})!`,
-                    variante: "success"
+                    text: `¡Reserva exitosa para el turno de las ${schedule} (${selectedDay})!`,
+                    variant: "success"
                 });
                 fetchReservations();
             })

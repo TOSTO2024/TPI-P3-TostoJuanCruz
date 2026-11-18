@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
+import { useAppContext } from "../../components/context/AppContext.jsx"; 
 import GestionProductos from "./GestionProductos.jsx"; 
 import ListaClientes from "./ListaClientes.jsx";       
 import InscriptosClases from "./InscriptosClases.jsx"; 
 
 const AdminPanel = () => {
-    const [activeSection, setActiveSection] = useState("menu");
+    const { activeSection, setActiveSection } = useAppContext();
 
     return (
         <Container className="py-4 text-white">

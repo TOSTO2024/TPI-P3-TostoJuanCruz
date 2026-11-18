@@ -22,8 +22,8 @@ const Login = ({ onLoginSuccess }) => {
 
         if (!isEmailValid || !isPasswordValid) {
             setAlertMessage({
-                texto: "Por favor, corrige los campos antes de ingresar.",
-                variante: "danger"
+                text: "Por favor, corrige los campos antes de ingresar.",
+                variant: "danger"
             });
             return;
         }
@@ -46,8 +46,8 @@ const Login = ({ onLoginSuccess }) => {
             localStorage.setItem('email', email);
 
             setAlertMessage({
-                texto: `¡Bienvenido ${data.nombre} (${data.rol})! Redirigiendo...`,
-                variante: "success"
+                text: `¡Bienvenido ${data.nombre} (${data.rol})! Redirigiendo...`,
+                variant: "success"
             });
 
             setTimeout(() => {
@@ -56,8 +56,8 @@ const Login = ({ onLoginSuccess }) => {
         })
         .catch(err => {
             setAlertMessage({
-                texto: "Error: " + err.message,
-                variante: "danger"
+                text: "Error: " + err.message,
+                variant: "danger"
             });
         });
     };
