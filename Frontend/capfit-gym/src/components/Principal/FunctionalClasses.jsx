@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/AppContext.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const ClasesFuncional = () => {
+const FunctionalClasses = () => {
     const { token, setAlertMessage } = useAppContext();
 
     const [serverReservations, setServerReservations] = useState([]);
@@ -77,9 +77,9 @@ const ClasesFuncional = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ 
-                    claseId: 1, 
-                    horario: fullSchedule 
+                body: JSON.stringify({
+                    claseId: 1,
+                    horario: fullSchedule
                 })
             })
             .then(res => res.json())
@@ -138,7 +138,7 @@ const ClasesFuncional = () => {
                         const isReserved = Array.isArray(serverReservations) && serverReservations.some(r => r && r.horario === fullSchedule);
 
                         return (
-                            <div 
+                            <div
                                 key={schedule}
                                 className="d-flex justify-content-between align-items-center p-3 rounded-3 shadow-sm"
                                 style={{ backgroundColor: "#1a1a1a", border: "1px solid #ffb300" }}
@@ -162,4 +162,4 @@ const ClasesFuncional = () => {
     );
 };
 
-export default ClasesFuncional;
+export default FunctionalClasses;

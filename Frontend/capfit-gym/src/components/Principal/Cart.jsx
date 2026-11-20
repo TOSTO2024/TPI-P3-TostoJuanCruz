@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { useAppContext } from "../context/AppContext"; 
-import imagenPrototipo from "../../img/prototipo.jpg";
+import { useAppContext } from "../context/AppContext.jsx";
+import Prototype from "../../img/Prototype.jpg";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const generateRandomCode = () => {
     return 'CAPFIT-RET-' + Math.floor(100000 + Math.random() * 900000);
 };
 
-const Changuito = () => {
-    const { 
-        cart, 
-        updateQuantity, 
-        removeFromCart, 
-        clearCart, 
-        setAlertMessage 
+const Cart = () => {
+    const {
+        cart,
+        updateQuantity,
+        removeFromCart,
+        clearCart,
+        setAlertMessage
     } = useAppContext();
 
     const [purchaseReceipt, setPurchaseReceipt] = useState(null);
@@ -22,7 +22,7 @@ const Changuito = () => {
 
     const handleCheckout = async () => {
         const confirmed = window.confirm("¿Está seguro que desea ir a pagar?");
-        if (!confirmed) return; 
+        if (!confirmed) return;
 
         const token = localStorage.getItem("token");
 
@@ -66,7 +66,7 @@ const Changuito = () => {
                 },
                 body: JSON.stringify({
                     titulo: 'Compra de Suplementos / Productos - Capfit Gym',
-                    precio: totalAmount 
+                    precio: totalAmount
                 })
             });
 
@@ -114,7 +114,7 @@ const Changuito = () => {
         }));
 
         try {
-            await fetch('http://localhost:5000/api/productos/comprar', {
+            const stockResponse = await fetch('http://localhost:5000/api/productos/comprar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -122,6 +122,15 @@ const Changuito = () => {
                 },
                 body: JSON.stringify({ items: purchasedItems })
             });
+
+            if (!stockResponse.ok) {
+                const data = await stockResponse.json();
+                setAlertMessage({
+                    text: data.mensaje || "Error al procesar el stock de la simulación.",
+                    variant: "danger"
+                });
+                return;
+            }
 
             setPurchaseReceipt({
                 code: generateRandomCode(),
@@ -133,6 +142,10 @@ const Changuito = () => {
 
         } catch (error) {
             console.error("Error en la simulación:", error);
+            setAlertMessage({
+                text: "Error de conexión con el servidor.",
+                variant: "danger"
+            });
         }
     };
 
@@ -147,8 +160,8 @@ const Changuito = () => {
                     <p className="small mb-1 text-center text-info">Código: <strong>{purchaseReceipt.code}</strong></p>
                     <hr className="border-secondary my-2" />
                     <ul className="list-unstyled small mb-2">
-                        {purchaseReceipt.products.map((p, idx) => (
-                            <li key={idx} className="d-flex justify-content-between">
+                        {purchaseReceipt.products.map((p) => (
+                            <li key={p.id} className="d-flex justify-content-between">
                                 <span>{p.quantity}x {p.nombre}</span>
                                 <span>${(p.precio * p.quantity).toFixed(2)}</span>
                             </li>
@@ -158,7 +171,7 @@ const Changuito = () => {
                     <p className="fw-bold mb-1">Total abonado: <span className="text-warning">${purchaseReceipt.totalAmount.toFixed(2)}</span></p>
                     <p className="text-white-50 small mt-2 mb-0 text-center">Presentá este comprobante en la recepción de Capfit Gym para retirar tus productos.</p>
                 </div>
-                <button 
+                <button
                     className="btn btn-outline-warning btn-sm w-100 fw-bold"
                     onClick={() => setPurchaseReceipt(null)}
                 >
@@ -182,24 +195,24 @@ const Changuito = () => {
                 {cart.map((item) => (
                     <li key={item.id} className="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary pb-2">
                         <div className="d-flex align-items-center">
-                            <img 
-                                src={(!item.imagen || item.imagen === "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=500&q=80") ? imagenPrototipo : item.imagen} 
-                                alt={item.nombre} 
-                                style={{ width: '35px', height: '35px', objectFit: 'cover', borderRadius: '4px' }} 
+                            <img
+                                src={(!item.imagen || item.imagen === "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=500&q=80") ? Prototype : item.imagen}
+                                alt={item.nombre}
+                                style={{ width: '35px', height: '35px', objectFit: 'cover', borderRadius: '4px' }}
                                 className="me-2"
                             />
                             <div>
                                 <h6 className="m-0 text-warning" style={{ fontSize: '13px' }}>{item.nombre}</h6>
                                 <div className="d-flex align-items-center mt-1">
-                                    <button 
-                                        className="btn btn-sm btn-outline-warning py-0 px-1" 
+                                    <button
+                                        className="btn btn-sm btn-outline-warning py-0 px-1"
                                         style={{ fontSize: '12px' }}
                                         onClick={() => updateQuantity(item.id, -1)}
                                     >
                                         -
                                     </button>
                                     <span className="mx-2 text-white" style={{ fontSize: '12px' }}>{item.quantity}</span>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-warning btn-sm py-0 px-1"
                                         style={{ fontSize: '12px' }}
                                         onClick={() => updateQuantity(item.id, 1)}
@@ -207,11 +220,11 @@ const Changuito = () => {
                                     >
                                         +
                                     </button>
-                                    <span className="ms-2 text-white-50" style={{ fontSize: '11px' }}>(${item.precio.toFixed(2)} "c/u")</span>
+                                    <span className="ms-2 text-white-50" style={{ fontSize: '11px' }}>(${item.precio.toFixed(2)} c/u)</span>
                                 </div>
                                 {item.quantity >= item.stock && (
                                     <small className="text-danger fw-bold d-block mt-1" style={{ fontSize: '10px' }}>
-                                        ⚠️ LLegaste al Max de Stock
+                                        ⚠️ Llegaste al máx. de stock
                                     </small>
                                 )}
                             </div>
@@ -221,8 +234,8 @@ const Changuito = () => {
                             <span className="fw-bold text-white d-block" style={{ fontSize: '13px' }}>
                                 ${ (item.precio * item.quantity).toFixed(2) }
                             </span>
-                            <button 
-                                className="btn btn-link text-danger p-0 mt-1" 
+                            <button
+                                className="btn btn-link text-danger p-0 mt-1"
                                 style={{ fontSize: '12px', textDecoration: 'none' }}
                                 onClick={() => removeFromCart(item.id)}
                                 title="Eliminar producto"
@@ -239,22 +252,22 @@ const Changuito = () => {
                 <span className="fw-bold text-warning fs-5">${totalAmount.toFixed(2)}</span>
             </div>
 
-            <button 
+            <button
                 className="btn btn-warning w-100 fw-bold text-dark py-2 mb-2"
                 onClick={handleCheckout}
             >
                 Finalizar Compra 💪🏻😄
             </button>
 
-            <button 
+            <button
                 className="btn btn-outline-success btn-sm w-100 fw-bold py-1"
                 style={{ fontSize: '12px' }}
                 onClick={handlePaymentSimulation}
             >
-                Simulación pago 
+                Simulación pago
             </button>
         </div>
     );
 };
 
-export default Changuito;
+export default Cart;

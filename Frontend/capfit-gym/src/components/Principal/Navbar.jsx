@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Modal, Button } from "react-bootstrap";
-import { useAppContext } from "../context/AppContext";
-import Changuito from "./Changuito";
-import capfitLogoNormal from "../../img/logoNormal.jpeg";
+import { useAppContext } from "../context/AppContext.jsx";
+import Cart from "./Cart.jsx";
+import defaultLogo from "../../img/defaultLogo.jpeg";
 
 const Navbar = () => {
     const [showLocationModal, setShowLocationModal] = useState(false);
@@ -46,7 +46,7 @@ const Navbar = () => {
         <>
             <nav className="d-flex justify-content-between align-items-center px-4 py-3" style={{ backgroundColor: "#1a1a1a", borderBottom: "2px solid #ffb300" }}>
                 <div className="d-flex align-items-center" style={{ cursor: "pointer" }} onClick={() => navigateTo("/")}>
-                    <img src={capfitLogoNormal} alt="Capfit Gym Logo" style={{ height: "45px", objectFit: "contain" }} className="me-4" />
+                    <img src={defaultLogo} alt="Capfit Gym Logo" style={{ height: "45px", objectFit: "contain" }} className="me-4" />
                     <h3 className="fw-bold m-0 fs-5">
                         <span className="text-white">CAPFIT</span>
                         <span className="text-warning"> GYM</span>
@@ -54,7 +54,7 @@ const Navbar = () => {
                 </div>
 
                 <div className="d-flex align-items-center position-relative">
-                    
+
                     <button
                         className="btn fw-semibold d-flex align-items-center justify-content-center p-2 me-3 border-0 text-dark btn-mapa-hover"
                         style={{
@@ -122,7 +122,7 @@ const Navbar = () => {
                             style={{ top: "55px", right: "0px", width: "350px", backgroundColor: "#1a1a1a", border: "2px solid #ffb300", zIndex: 1000 }}
                         >
                             <h5 className="text-warning fw-bold border-bottom pb-2 mb-3">Tu Changuito</h5>
-                            <Changuito />
+                            <Cart />
                         </div>
                     )}
 
@@ -160,7 +160,7 @@ const Navbar = () => {
                         className="px-4 fw-bold text-dark"
                         onClick={() => {
                             setShowLocationModal(false);
-                            window.open("https://www.google.com/maps/place/CAPFIT+GYM/@-32.998084,-60.6263982,17z", "_blank");
+                            window.open("https://www.google.com/maps/place/CAPFIT+GYM/@-32.998084,-60.6263982,17z/data=!4m6!3m5!1s0x95b7ab004af34eb5:0x4fbc355dd58ea0c0!8m2!3d-32.9981293!4d-60.6263677!16s%2Fg%2F11wr0l1d2q?entry=ttu&g_ep=EgoyMDI2MTExNy4wIKXMDSoASAFQAw%3D%3D", "_blank");
                         }}
                     >
                         Abrir Google Maps 🗺️

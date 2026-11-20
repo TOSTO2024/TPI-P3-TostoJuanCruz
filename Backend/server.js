@@ -1,117 +1,24 @@
-const express = require('express');
-const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const { MercadoPagoConfig, Preference } = require('mercadopago');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import jwt from 'jsonwebtoken';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
+import db from "./database.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const SECRET_KEY = 'clave_secreta_capfit_gym_utn';
+const SECRET_KEY = process.env.SECRET_KEY || 'clave_secreta_capfit_gym_utn';
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-const client = new MercadoPagoConfig({ accessToken: 'APP_USR-1447549608327337-110622-0c1e683ce60071945b81709ee6e77d8c-3824650302' });
+if (!MP_ACCESS_TOKEN) {
+    console.warn('Advertencia: MP_ACCESS_TOKEN no está definido en el archivo .env');
+}
+
+const client = new MercadoPagoConfig({ accessToken: MP_ACCESS_TOKEN || '' });
 
 app.use(cors());
 app.use(express.json());
-
-const dbPath = path.resolve(__dirname, 'capfit.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error al conectar con la base de datos:', err.message);
-    } else {
-        console.log('Conectado a la base de datos SQLite (capfit.db) con éxito.');
-    }
-});
-
-db.serialize(() => {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            rol TEXT NOT NULL,
-            nombre TEXT NOT NULL,
-            dni TEXT UNIQUE,
-            fechaNacimiento TEXT,
-            membresia_expiracion TEXT
-        )
-    `, (err) => {
-        if (!err) {
-            db.get(`SELECT COUNT(*) as count FROM usuarios`, (err, row) => {
-                if (row.count === 0) {
-                    const usuariosIniciales = [
-                        ["sysadmin@capfit.com", "12345678", "sysadmin", "Dueño Supremo", null],
-                        ["admin@capfit.com", "12345678", "admin", "Administrador", null],
-                        ["cliente@capfit.com", "12345678", "cliente", "Cliente promedio", null]
-                    ];
-                    const stmt = db.prepare(`INSERT INTO usuarios (email, password, rol, nombre, dni) VALUES (?, ?, ?, ?, ?)`);
-                    usuariosIniciales.forEach(u => stmt.run(u));
-                    stmt.finalize();
-                    console.log("Usuarios iniciales insertados en la base de datos.");
-                }
-            });
-        }
-    });
-
-    db.run(`
-        CREATE TABLE IF NOT EXISTS productos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            precio REAL NOT NULL,
-            stock INTEGER DEFAULT 0,
-            imagen TEXT,
-            descripcion TEXT
-        )
-    `, (err) => {
-        if (!err) {
-            db.get(`SELECT COUNT(*) as count FROM productos`, (err, row) => {
-                if (row.count === 0) {
-                    const productosIniciales = [
-                        ["Proteína Whey Capfit 1kg", 45000, 15, "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=500&q=80", "Proteína de máxima pureza para potenciar tu recuperación muscular."],
-                        ["Creatina Monohidrato 300g", 32000, 20, "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80", "Aumenta tu fuerza, potencia y rendimiento en cada entrenamiento."],
-                        ["Shaker Oficial Capfit Gym", 8500, 30, "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=500&q=80", "Vaso mezclador anti-goteo con capacidad de 600ml y rejilla."],
-                        ["Remera Oversize Entrená", 18000, 10, "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80", "Algodón peinado de alta calidad para máxima comodidad."]
-                    ];
-                    const stmt = db.prepare(`INSERT INTO productos (nombre, precio, stock, imagen, descripcion) VALUES (?, ?, ?, ?, ?)`);
-                    productosIniciales.forEach(p => stmt.run(p));
-                    stmt.finalize();
-                    console.log("Productos iniciales insertados en la base de datos.");
-                }
-            });
-        }
-    });
-    
-    db.run(`
-        CREATE TABLE IF NOT EXISTS reservas_clases (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            clase_id INTEGER,
-            horario TEXT,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
-        )
-    `, (err) => {
-        if (!err) {
-            console.log("Tabla de reservas de clases verificada/creada con éxito.");
-        }
-    });
-
-    db.run(`
-        CREATE TABLE IF NOT EXISTS tickets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER,
-            concepto TEXT,
-            monto REAL,
-            codigo_ticket TEXT,
-            estado TEXT DEFAULT 'Aprobado',
-            fecha TEXT,
-            FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
-        )
-    `, (err) => {
-        if (!err) {
-            console.log("Tabla de tickets verificada/creada con éxito.");
-        }
-    });
-});
 
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -122,7 +29,7 @@ const verificarToken = (req, res, next) => {
 
     jwt.verify(token, SECRET_KEY, (err, decoded) => {
         if (err) return res.status(401).json({ mensaje: 'Token inválido o expirado.' });
-        
+
         req.usuarioId = decoded.id;
         req.usuarioRol = decoded.rol;
         next();
@@ -144,6 +51,22 @@ const verificarSysadmin = (req, res, next) => {
         res.status(403).json({ mensaje: 'Acceso denegado: Se requiere rol exclusivo de Sysadmin.' });
     }
 };
+
+const dbGet = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) reject(err);
+            else resolve(row);
+        });
+    });
+
+const dbRun = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) reject(err);
+            else resolve(this);
+        });
+    });
 
 app.post('/api/login', (req, res) => {
     const { email, password } = req.body;
@@ -191,8 +114,8 @@ app.post('/api/register', (req, res) => {
 
         const nombreUsuario = nombre || 'Usuario';
         const queryInsert = `INSERT INTO usuarios (email, password, rol, nombre, dni, fechaNacimiento) VALUES (?, ?, 'cliente', ?, ?, ?)`;
-        
-        db.run(queryInsert, [email, password, nombreUsuario, dni, fechaNacimiento || null], function(err) {
+
+        db.run(queryInsert, [email, password, nombreUsuario, dni, fechaNacimiento || null], function (err) {
             if (err) return res.status(500).json({ mensaje: 'Error al registrar usuario.' });
 
             const nuevoId = this.lastID;
@@ -219,22 +142,22 @@ app.get('/api/usuarios', verificarToken, verificarAdmin, (req, res) => {
     });
 });
 
-// PUT: Actualizar rol con validación estricta de Sysadmin único
 app.put('/api/usuarios/:id/rol', verificarToken, verificarSysadmin, (req, res) => {
     const { id } = req.params;
     const { rol } = req.body;
 
     if (!['cliente', 'admin', 'sysadmin'].includes(rol)) {
-        return res.status(400).json({ mensaje: "Rol inválido." });
+        return res.status(400).json({ mensaje: 'Rol inválido.' });
     }
 
     db.get(`SELECT rol FROM usuarios WHERE id = ?`, [id], (err, usuarioActual) => {
-        if (err || !usuarioActual) return res.status(404).json({ mensaje: "Usuario no encontrado." });
+        if (err || !usuarioActual) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
 
         if (usuarioActual.rol === 'sysadmin' && rol !== 'sysadmin') {
             db.get(`SELECT COUNT(*) as count FROM usuarios WHERE rol = 'sysadmin'`, (err, row) => {
+                if (err || !row) return res.status(500).json({ mensaje: 'Error al verificar sysadmins.' });
                 if (row.count <= 1) {
-                    return res.status(400).json({ mensaje: "Acción denegada: Debe existir al menos un sysadmin en el sistema." });
+                    return res.status(400).json({ mensaje: 'Acción denegada: Debe existir al menos un sysadmin en el sistema.' });
                 }
                 ejecutarUpdateRol();
             });
@@ -244,26 +167,26 @@ app.put('/api/usuarios/:id/rol', verificarToken, verificarSysadmin, (req, res) =
     });
 
     function ejecutarUpdateRol() {
-        db.run(`UPDATE usuarios SET rol = ? WHERE id = ?`, [rol, id], function(err) {
+        db.run(`UPDATE usuarios SET rol = ? WHERE id = ?`, [rol, id], function (err) {
             if (err) {
-                return res.status(500).json({ mensaje: "Error al actualizar el rol en la base de datos." });
+                return res.status(500).json({ mensaje: 'Error al actualizar el rol en la base de datos.' });
             }
-            res.json({ mensaje: "¡Rol actualizado con éxito!" });
+            res.json({ mensaje: '¡Rol actualizado con éxito!' });
         });
     }
 });
 
-// DELETE: Eliminar usuario con validación estricta de Sysadmin único
 app.delete('/api/usuarios/:id', verificarToken, verificarSysadmin, (req, res) => {
     const { id } = req.params;
 
     db.get(`SELECT rol, nombre FROM usuarios WHERE id = ?`, [id], (err, usuario) => {
-        if (err || !usuario) return res.status(404).json({ mensaje: "Usuario no encontrado." });
+        if (err || !usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
 
         if (usuario.rol === 'sysadmin') {
             db.get(`SELECT COUNT(*) as count FROM usuarios WHERE rol = 'sysadmin'`, (err, row) => {
+                if (err || !row) return res.status(500).json({ mensaje: 'Error al verificar sysadmins.' });
                 if (row.count <= 1) {
-                    return res.status(400).json({ mensaje: "Acción denegada: No se puede eliminar al único sysadmin del sistema." });
+                    return res.status(400).json({ mensaje: 'Acción denegada: No se puede eliminar al único sysadmin del sistema.' });
                 }
                 ejecutarDelete();
             });
@@ -273,18 +196,23 @@ app.delete('/api/usuarios/:id', verificarToken, verificarSysadmin, (req, res) =>
     });
 
     function ejecutarDelete() {
-        db.run(`DELETE FROM usuarios WHERE id = ?`, [id], function(err) {
+        db.run(`DELETE FROM usuarios WHERE id = ?`, [id], function (err) {
             if (err) return res.status(500).json({ mensaje: 'Error al eliminar el usuario.' });
-            res.json({ mensaje: "Usuario eliminado con éxito." });
+            res.json({ mensaje: 'Usuario eliminado con éxito.' });
         });
     }
 });
 
 app.post('/api/usuarios/crear-admin', verificarToken, verificarSysadmin, (req, res) => {
     const { email, password, nombre } = req.body;
-    
+
+    if (!email || !password) {
+        return res.status(400).json({ mensaje: 'Email y contraseña son obligatorios.' });
+    }
+
     const queryCheck = `SELECT * FROM usuarios WHERE email = ?`;
     db.get(queryCheck, [email], (err, existe) => {
+        if (err) return res.status(500).json({ mensaje: 'Error en el servidor.' });
         if (existe) {
             return res.status(400).json({ mensaje: 'El usuario ya existe.' });
         }
@@ -292,12 +220,12 @@ app.post('/api/usuarios/crear-admin', verificarToken, verificarSysadmin, (req, r
         const nombreAdmin = nombre || 'Administrador';
         const queryInsert = `INSERT INTO usuarios (email, password, rol, nombre) VALUES (?, ?, 'admin', ?)`;
 
-        db.run(queryInsert, [email, password, nombreAdmin], function(err) {
+        db.run(queryInsert, [email, password, nombreAdmin], function (err) {
             if (err) return res.status(500).json({ mensaje: 'Error al crear administrador.' });
 
-            res.status(201).json({ 
-                mensaje: 'Administrador creado con éxito', 
-                admin: { id: this.lastID, email, rol: 'admin' } 
+            res.status(201).json({
+                mensaje: 'Administrador creado con éxito',
+                admin: { id: this.lastID, email, rol: 'admin' }
             });
         });
     });
@@ -316,18 +244,18 @@ app.get('/api/productos', (req, res) => {
 
 app.post('/api/productos', verificarToken, verificarAdmin, (req, res) => {
     const { nombre, precio, stock, imagen, descripcion } = req.body;
-    
+
     if (!nombre || !precio) {
         return res.status(400).json({ error: 'El nombre y el precio son obligatorios.' });
     }
 
     const nuevoPrecio = Number(precio);
     const nuevoStock = Number(stock) || 0;
-    const nuevaImagen = imagen || "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=500&q=80";
-    const nuevaDescripcion = descripcion || "Suplemento oficial de Capfit Gym.";
+    const nuevaImagen = imagen || 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=500&q=80';
+    const nuevaDescripcion = descripcion || 'Suplemento oficial de Capfit Gym.';
 
     const query = `INSERT INTO productos (nombre, precio, stock, imagen, descripcion) VALUES (?, ?, ?, ?, ?)`;
-    db.run(query, [nombre, nuevoPrecio, nuevoStock, nuevaImagen, nuevaDescripcion], function(err) {
+    db.run(query, [nombre, nuevoPrecio, nuevoStock, nuevaImagen, nuevaDescripcion], function (err) {
         if (err) return res.status(500).json({ mensaje: 'Error al crear producto.' });
 
         res.status(201).json({
@@ -346,7 +274,7 @@ app.put('/api/productos/:id', verificarToken, verificarAdmin, (req, res) => {
     const { nombre, precio, stock, imagen, descripcion } = req.body;
 
     db.get(`SELECT * FROM productos WHERE id = ?`, [id], (err, producto) => {
-        if (err || !producto) return res.status(404).json({ mensaje: "Producto no encontrado" });
+        if (err || !producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
 
         const nuevoNombre = nombre || producto.nombre;
         const nuevoPrecio = precio ? Number(precio) : producto.precio;
@@ -358,9 +286,16 @@ app.put('/api/productos/:id', verificarToken, verificarAdmin, (req, res) => {
         db.run(query, [nuevoNombre, nuevoPrecio, nuevoStock, nuevaImagen, nuevaDescripcion, id], (err) => {
             if (err) return res.status(500).json({ mensaje: 'Error al actualizar producto.' });
 
-            res.json({ 
-                mensaje: 'Producto actualizado con éxito', 
-                producto: { id: Number(id), nombre: nuevoNombre, precio: nuevoPrecio, stock: nuevoStock, imagen: nuevaImagen, descripcion: nuevaDescripcion } 
+            res.json({
+                mensaje: 'Producto actualizado con éxito',
+                producto: {
+                    id: Number(id),
+                    nombre: nuevoNombre,
+                    precio: nuevoPrecio,
+                    stock: nuevoStock,
+                    imagen: nuevaImagen,
+                    descripcion: nuevaDescripcion
+                }
             });
         });
     });
@@ -370,21 +305,21 @@ app.delete('/api/productos/:id', verificarToken, verificarAdmin, (req, res) => {
     const { id } = req.params;
 
     db.get(`SELECT * FROM productos WHERE id = ?`, [id], (err, producto) => {
-        if (err || !producto) return res.status(404).json({ mensaje: "Producto no encontrado" });
+        if (err || !producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
 
         db.run(`DELETE FROM productos WHERE id = ?`, [id], (err) => {
             if (err) return res.status(500).json({ mensaje: 'Error al eliminar producto.' });
-            res.json({ mensaje: "Producto eliminado con éxito", producto });
+            res.json({ mensaje: 'Producto eliminado con éxito', producto });
         });
     });
 });
 
 app.post('/api/reservas', verificarToken, (req, res) => {
     const { claseId, horario } = req.body;
-    const usuarioId = req.usuarioId; 
+    const usuarioId = req.usuarioId;
 
     const query = `INSERT INTO reservas_clases (usuario_id, clase_id, horario) VALUES (?, ?, ?)`;
-    db.run(query, [usuarioId, claseId, horario], function(err) {
+    db.run(query, [usuarioId, claseId, horario], function (err) {
         if (err) return res.status(500).json({ mensaje: 'Error al registrar la reserva.' });
         res.status(201).json({ mensaje: '¡Clase reservada con éxito!', id: this.lastID });
     });
@@ -392,8 +327,8 @@ app.post('/api/reservas', verificarToken, (req, res) => {
 
 app.get('/api/reservas', verificarToken, (req, res) => {
     const query = `
-        SELECT r.id, r.clase_id, r.horario, u.id as usuario_id, u.nombre, u.email 
-        FROM reservas_clases r 
+        SELECT r.id, r.clase_id, r.horario, u.id as usuario_id, u.nombre, u.email
+        FROM reservas_clases r
         JOIN usuarios u ON r.usuario_id = u.id
         WHERE r.usuario_id = ?
     `;
@@ -405,8 +340,8 @@ app.get('/api/reservas', verificarToken, (req, res) => {
 
 app.get('/api/admin/reservas', verificarToken, verificarAdmin, (req, res) => {
     const query = `
-        SELECT r.id, r.clase_id, r.horario, u.id as usuario_id, u.nombre, u.email 
-        FROM reservas_clases r 
+        SELECT r.id, r.clase_id, r.horario, u.id as usuario_id, u.nombre, u.email
+        FROM reservas_clases r
         JOIN usuarios u ON r.usuario_id = u.id
     `;
     db.all(query, [], (err, reservas) => {
@@ -420,13 +355,17 @@ app.delete('/api/reservas/:id', verificarToken, (req, res) => {
     const usuarioId = req.usuarioId;
 
     const query = `DELETE FROM reservas_clases WHERE id = ? AND usuario_id = ?`;
-    db.run(query, [id, usuarioId], function(err) {
+    db.run(query, [id, usuarioId], function (err) {
         if (err) return res.status(500).json({ mensaje: 'Error al cancelar la reserva.' });
         res.json({ mensaje: 'Reserva cancelada con éxito' });
     });
 });
 
 app.post('/api/crear-preferencia', verificarToken, async (req, res) => {
+    if (!MP_ACCESS_TOKEN) {
+        return res.status(500).json({ mensaje: 'Mercado Pago no está configurado en el servidor (falta MP_ACCESS_TOKEN).' });
+    }
+
     try {
         const { titulo, precio } = req.body;
 
@@ -442,18 +381,17 @@ app.post('/api/crear-preferencia', verificarToken, async (req, res) => {
                     }
                 ],
                 back_urls: {
-                    success: 'http://localhost:3000',
-                    failure: 'http://localhost:3000',
-                    pending: 'http://localhost:3000'
+                    success: FRONTEND_URL,
+                    failure: FRONTEND_URL,
+                    pending: FRONTEND_URL
                 }
             }
         });
 
         res.json({ init_point: result.init_point });
-
     } catch (error) {
-        console.error("Error al crear preferencia de Mercado Pago:", error);
-        res.status(500).json({ mensaje: "Error al procesar el pago con Mercado Pago." });
+        console.error('Error al crear preferencia de Mercado Pago:', error);
+        res.status(500).json({ mensaje: 'Error al procesar el pago con Mercado Pago.' });
     }
 });
 
@@ -464,24 +402,24 @@ app.post('/api/tickets', verificarToken, (req, res) => {
     const fecha = new Date().toLocaleDateString();
 
     const query = `INSERT INTO tickets (usuario_id, concepto, monto, codigo_ticket, fecha) VALUES (?, ?, ?, ?, ?)`;
-    db.run(query, [usuarioId, concepto, monto, codigoTicket, fecha], function(err) {
+    db.run(query, [usuarioId, concepto, monto, codigoTicket, fecha], function (err) {
         if (err) return res.status(500).json({ mensaje: 'Error al generar el ticket.' });
         res.status(201).json({ mensaje: 'Ticket generado', codigo_ticket: codigoTicket });
     });
 });
 
 app.post('/api/usuarios/membresia', verificarToken, (req, res) => {
-    const usuarioId = req.usuarioId; 
+    const usuarioId = req.usuarioId;
     const fechaExpiracion = new Date(new Date().getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString();
 
     db.run(
         `UPDATE usuarios SET membresia_expiracion = ? WHERE id = ?`,
         [fechaExpiracion, usuarioId],
-        function(err) {
+        function (err) {
             if (err) {
-                return res.status(500).json({ mensaje: "Error al actualizar la membresía en la base de datos." });
+                return res.status(500).json({ mensaje: 'Error al actualizar la membresía en la base de datos.' });
             }
-            res.json({ mensaje: "Membresía activada con éxito", membresia_expiracion: fechaExpiracion });
+            res.json({ mensaje: 'Membresía activada con éxito', membresia_expiracion: fechaExpiracion });
         }
     );
 });
@@ -490,36 +428,61 @@ app.get('/api/usuarios/perfil', verificarToken, (req, res) => {
     const usuarioId = req.usuarioId;
     db.get(`SELECT id, nombre, email, rol, membresia_expiracion FROM usuarios WHERE id = ?`, [usuarioId], (err, row) => {
         if (err || !row) {
-            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+            return res.status(404).json({ mensaje: 'Usuario no encontrado' });
         }
         res.json(row);
     });
 });
 
-app.post('/api/productos/comprar', verificarToken, (req, res) => {
-    const { items } = req.body; 
-    
+app.post('/api/productos/comprar', verificarToken, async (req, res) => {
+    const { items } = req.body;
+
     if (!Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ mensaje: 'No hay productos en la compra.' });
     }
 
-    const stmt = db.prepare(`UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?`);
-    
-    let errorOcurrido = false;
-    db.serialize(() => {
-        items.forEach(item => {
-            stmt.run(item.cantidad, item.id, item.cantidad, (err) => {
-                if (err) errorOcurrido = true;
-            });
-        });
-        stmt.finalize();
-    });
+    let transactionStarted = false;
 
-    if (errorOcurrido) {
-        return res.status(500).json({ mensaje: 'Error al actualizar el stock o stock insuficiente.' });
+    try {
+        for (const item of items) {
+            const cantidad = Number(item.cantidad);
+            if (!item.id || !Number.isFinite(cantidad) || cantidad <= 0) {
+                return res.status(400).json({ mensaje: 'Cantidad o producto inválido.' });
+            }
+        }
+
+        await dbRun('BEGIN TRANSACTION');
+        transactionStarted = true;
+
+        for (const item of items) {
+            const cantidad = Number(item.cantidad);
+            const prod = await dbGet(`SELECT stock, nombre FROM productos WHERE id = ?`, [item.id]);
+            if (!prod || prod.stock < cantidad) {
+                await dbRun('ROLLBACK');
+                return res.status(400).json({ mensaje: 'Stock insuficiente o producto inexistente.' });
+            }
+
+            const result = await dbRun(
+                `UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?`,
+                [cantidad, item.id, cantidad]
+            );
+            if (!result || result.changes === 0) {
+                await dbRun('ROLLBACK');
+                return res.status(400).json({ mensaje: 'Error al actualizar el stock o stock insuficiente.' });
+            }
+        }
+
+        await dbRun('COMMIT');
+        res.json({ mensaje: 'Compra procesada con éxito y stock actualizado.' });
+    } catch (error) {
+        if (transactionStarted) {
+            try {
+                await dbRun('ROLLBACK');
+            } catch (_) {
+            }
+        }
+        res.status(400).json({ mensaje: error.message || 'Error al procesar la compra.' });
     }
-
-    res.json({ mensaje: 'Compra procesada con éxito y stock actualizado.' });
 });
 
 app.listen(PORT, () => {

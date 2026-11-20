@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAppContext } from "../../components/context/AppContext"; 
+import { useAppContext } from "../../components/context/AppContext.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const InscriptosClases = () => {
+const ClassEnrollments = () => {
     const { token } = useAppContext();
     const [reservations, setReservations] = useState([]);
     const [selectedDay, setSelectedDay] = useState("Lunes");
@@ -132,4 +132,4 @@ const InscriptosClases = () => {
     );
 };
 
-export default InscriptosClases;
+export default ClassEnrollments;

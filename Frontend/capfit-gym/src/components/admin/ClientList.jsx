@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAppContext } from "../../components/context/AppContext"; 
+import { useAppContext } from "../../components/context/AppContext.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const ListaClientes = () => {
+const ClientList = () => {
     const { token, role } = useAppContext();
     const [users, setUsers] = useState([]);
 
@@ -26,7 +26,6 @@ const ListaClientes = () => {
     }, [fetchUsers]);
 
     const changeRole = async (userId, userName, currentRole, newRole) => {
-        // Validar en frontend si es el último sysadmin intentando quitarse el rol
         const sysadmins = users.filter(u => u.rol === 'sysadmin');
         if (currentRole === 'sysadmin' && newRole !== 'sysadmin' && sysadmins.length <= 1) {
             alert("Acción denegada: Debe existir al menos un 'sysadmin' en el sistema.");
@@ -47,7 +46,7 @@ const ListaClientes = () => {
             });
 
             if (res.ok) {
-                fetchUsers(); 
+                fetchUsers();
             } else {
                 const errorData = await res.json();
                 alert(errorData.mensaje || "Error al actualizar el rol.");
@@ -58,7 +57,6 @@ const ListaClientes = () => {
     };
 
     const handleDeleteUser = async (userId, userName, userRole) => {
-        // Validar si es el último sysadmin antes de eliminar
         const sysadmins = users.filter(u => u.rol === 'sysadmin');
         if (userRole === 'sysadmin' && sysadmins.length <= 1) {
             alert("Acción denegada: No se puede eliminar al único 'sysadmin' del sistema.");
@@ -110,7 +108,7 @@ const ListaClientes = () => {
     return (
         <div className="container py-4 text-white">
             <h2 className="text-warning fw-bold text-center mb-4">Gestión de Clientes y Roles</h2>
-            
+
             <div className="table-responsive">
                 <table className="table table-dark table-striped align-middle text-white" style={{ border: "1px solid #ffb300" }}>
                     <thead>
@@ -134,8 +132,8 @@ const ListaClientes = () => {
                                 <td>{calculateRemainingTime(user.membresia_expiracion)}</td>
                                 <td>
                                     {role === 'sysadmin' ? (
-                                        <select 
-                                            value={user.rol} 
+                                        <select
+                                            value={user.rol}
                                             onChange={(e) => changeRole(user.id, user.nombre, user.rol, e.target.value)}
                                             className="form-select form-select-sm bg-dark text-white border-warning fw-bold"
                                         >
@@ -156,7 +154,7 @@ const ListaClientes = () => {
                                             className="btn btn-outline-danger btn-sm fw-bold px-3"
                                             title="Eliminar usuario"
                                         >
-                                            Eliminar 🗑️
+                                            Eliminar
                                         </button>
                                     </td>
                                 )}
@@ -169,4 +167,4 @@ const ListaClientes = () => {
     );
 };
 
-export default ListaClientes;
+export default ClientList;

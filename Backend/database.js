@@ -7,7 +7,8 @@ const __dirname = path.dirname(__filename);
 
 const dbPath = path.resolve(__dirname, 'capfit.db');
 
-const db = new sqlite3.verbose().Database(dbPath, (err) => {
+const sqlite = sqlite3.verbose();
+const db = new sqlite.Database(dbPath, (err) => {
     if (err) {
         console.error('Error al conectar con la base de datos:', err.message);
     } else {
@@ -16,6 +17,8 @@ const db = new sqlite3.verbose().Database(dbPath, (err) => {
 });
 
 db.serialize(() => {
+    db.run(`PRAGMA foreign_keys = ON`);
+
     db.run(`
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,7 +1,7 @@
 import { Carousel } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const Carrusel = () => {
+const GymCarousel = () => {
     const slides = [
         {
             id: 1,
@@ -50,4 +50,4 @@ const Carrusel = () => {
     );
 };
 
-export default Carrusel;
+export default GymCarousel;

@@ -1,11 +1,22 @@
 import { useState } from "react";
 import { Button, Form, Card } from "react-bootstrap";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext } from "../../context/AppContext.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "../login/Login.css";
 
+const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
+    if (!year || !month || !day) return null;
+    return new Date(year, month - 1, day);
+};
+
 const Register = () => {
-    const { setAlertMessage } = useAppContext();
+    const { setAlertMessage, setToken, setRole, setUserName } = useAppContext();
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -30,16 +41,23 @@ const Register = () => {
     const dniRegex = /^\d{7,8}$/;
 
     const today = new Date();
-    const birthDateObj = new Date(formData.birthDate);
-    const age = today.getFullYear() - birthDateObj.getFullYear() - 
-        (today.getMonth() < birthDateObj.getMonth() || (today.getMonth() === birthDateObj.getMonth() && today.getDate() < birthDateObj.getDate()) ? 1 : 0);
+    const birthDateObj = parseLocalDate(formData.birthDate);
+    const isValidBirthDateInstance = birthDateObj instanceof Date && !Number.isNaN(birthDateObj.getTime());
+
+    const age = isValidBirthDateInstance
+        ? today.getFullYear() - birthDateObj.getFullYear() -
+        (today.getMonth() < birthDateObj.getMonth() ||
+        (today.getMonth() === birthDateObj.getMonth() && today.getDate() < birthDateObj.getDate())
+            ? 1
+            : 0)
+        : -1;
 
     const validations = {
         firstName: lettersOnlyRegex.test(formData.firstName),
         lastName: lettersOnlyRegex.test(formData.lastName),
         email: emailRegex.test(formData.email),
         dni: dniRegex.test(formData.dni),
-        birthDate: Boolean(formData.birthDate) && birthDateObj <= today && age >= 5 && age <= 100,
+        birthDate: Boolean(formData.birthDate) && isValidBirthDateInstance && birthDateObj <= today && age >= 5 && age <= 100,
         password: formData.password.length >= 8
     };
 
@@ -50,7 +68,7 @@ const Register = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         setTouched({
             firstName: true,
             lastName: true,
@@ -71,7 +89,7 @@ const Register = () => {
         }
 
         const newUser = {
-            nombre: `${formData.firstName} ${formData.lastName}`, 
+            nombre: `${formData.firstName} ${formData.lastName}`,
             email: formData.email,
             password: formData.password,
             dni: formData.dni,
@@ -96,20 +114,23 @@ const Register = () => {
             localStorage.setItem('rol', data.rol);
             localStorage.setItem('nombre', data.nombre);
 
+            if (setToken) setToken(data.token);
+            if (setRole) setRole(data.rol);
+            if (setUserName) setUserName(data.nombre);
+
             setAlertMessage({
                 text: `¡Cuenta creada con éxito! Bienvenido ${data.nombre}`,
                 variant: "success"
             });
 
             setTimeout(() => {
-                window.location.href = "/"; 
+                window.location.href = "/";
             }, 1000);
         })
         .catch(err => {
-            // Aquí atrapamos si el DNI o email ya existen en la base de datos
             setAlertMessage({
-                text: err.message.includes("dni") || err.message.includes("DNI") 
-                    ? "El DNI ingresado ya se encuentra registrado en el sistema." 
+                text: err.message.includes("dni") || err.message.includes("DNI")
+                    ? "El DNI ingresado ya se encuentra registrado en el sistema."
                     : "Error: " + err.message,
                 variant: "danger"
             });
@@ -198,12 +219,12 @@ const Register = () => {
                                 className="py-2 text-white"
                             />
                             <Form.Control.Feedback type="invalid" className="fw-semibold">
-                                {!formData.birthDate ? "Por favor, seleccione su fecha de nacimiento." : 
-                                birthDateObj > today ? "La fecha no puede ser futura." : 
+                                {!formData.birthDate ? "Por favor, seleccione su fecha de nacimiento." :
+                                (isValidBirthDateInstance && birthDateObj > today) ? "La fecha no puede ser futura." :
                                 "Debes tener entre 5 y 100 años para registrarte."}
                             </Form.Control.Feedback>
                         </Form.Group>
-                        
+
                         <Form.Group className="mb-3" controlId="formPassword">
                             <Form.Label className="fw-semibold text-warning">Contraseña</Form.Label>
                             <Form.Control

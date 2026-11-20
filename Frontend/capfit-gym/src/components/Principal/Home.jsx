@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext"; 
-import Carrusel from "./Carrusel";
+import { useAppContext } from "../context/AppContext.jsx";
+import Carousel from "./Carousel.jsx";
 
-const Inicio = () => {
+const Home = () => {
     const { token, userName } = useAppContext();
     const navigate = useNavigate();
 
     return (
         <div className="text-center container">
-            <Carrusel />
+            <Carousel />
             <h1 className="display-3 fw-bold text-white mb-3 mt-4">
                 BIENVENIDOS A <span className="text-warning">CAPFIT GYM</span>
             </h1>
@@ -27,4 +27,4 @@ const Inicio = () => {
     );
 };
 
-export default Inicio;
+export default Home;

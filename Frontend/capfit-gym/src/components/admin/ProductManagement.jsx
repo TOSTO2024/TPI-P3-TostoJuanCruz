@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { Table, Button, Form, Modal, Alert } from "react-bootstrap";
-import { useAppContext } from "../../components/context/AppContext"; 
+import { useAppContext } from "../../components/context/AppContext.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const GestionProductos = () => {
+const ProductManagement = () => {
     const { token } = useAppContext();
     const [products, setProducts] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
     const [feedback, setFeedback] = useState(null);
-    const [modalError, setModalError] = useState(null); 
+    const [modalError, setModalError] = useState(null);
 
     const [formData, setFormData] = useState({
         nombre: "",
@@ -30,7 +30,7 @@ const GestionProductos = () => {
     useEffect(() => {
         fetchProducts();
     }, []);
-    
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
@@ -39,22 +39,21 @@ const GestionProductos = () => {
 
         if (priceNum < 0 || stockNum < 0) {
             setModalError("⚠️ El precio y el stock deben ser mayores o iguales a 0.");
-            return; 
+            return;
         }
 
         setModalError(null);
 
-        // Validar imagen por defecto si está vacía
-        const imagenFinal = formData.imagen.trim() !== "" 
-            ? formData.imagen 
+        const finalImage = formData.imagen.trim() !== ""
+            ? formData.imagen
             : "https://raw.githubusercontent.com/TOSTO2024/TPI-P3/698e253b510f92c2f3db5b2479ea42dd3052e3cb/Frontend/capfit-gym/src/img/Prototipo.jpg";
 
-        const payload = { ...formData, imagen: imagenFinal };
+        const payload = { ...formData, imagen: finalImage };
 
-        const url = isEditing 
-            ? `http://localhost:5000/api/productos/${currentId}` 
+        const url = isEditing
+            ? `http://localhost:5000/api/productos/${currentId}`
             : 'http://localhost:5000/api/productos';
-        
+
         const method = isEditing ? 'PUT' : 'POST';
 
         fetch(url, {
@@ -73,9 +72,9 @@ const GestionProductos = () => {
             fetchProducts();
             setShowModal(false);
             resetForm();
-            setFeedback({ 
-                text: isEditing ? "¡Producto actualizado con éxito!" : "¡Producto creado con éxito!", 
-                variant: "success" 
+            setFeedback({
+                text: isEditing ? "¡Producto actualizado con éxito!" : "¡Producto creado con éxito!",
+                variant: "success"
             });
         })
         .catch(err => setFeedback({ text: err.message, variant: "danger" }));
@@ -169,31 +168,31 @@ const GestionProductos = () => {
                             <Form.Label>Nombre</Form.Label>
                             <Form.Control type="text" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} required />
                         </Form.Group>
-                        
+
                         <Form.Group className="mb-3">
                             <Form.Label>Precio ($)</Form.Label>
-                            <Form.Control 
-                                type="number" 
-                                step="0.01" 
-                                value={formData.precio} 
+                            <Form.Control
+                                type="number"
+                                step="0.01"
+                                value={formData.precio}
                                 onChange={e => {
                                     setFormData({...formData, precio: e.target.value});
                                     if(Number(e.target.value) >= 0) setModalError(null);
-                                }} 
-                                required 
+                                }}
+                                required
                             />
                         </Form.Group>
 
                         <Form.Group className="mb-3">
                             <Form.Label>Stock</Form.Label>
-                            <Form.Control 
-                                type="number" 
-                                value={formData.stock} 
+                            <Form.Control
+                                type="number"
+                                value={formData.stock}
                                 onChange={e => {
                                     setFormData({...formData, stock: e.target.value});
                                     if(Number(e.target.value) >= 0) setModalError(null);
-                                }} 
-                                required 
+                                }}
+                                required
                             />
                         </Form.Group>
 
@@ -217,4 +216,4 @@ const GestionProductos = () => {
     );
 };
 
-export default GestionProductos;
+export default ProductManagement;

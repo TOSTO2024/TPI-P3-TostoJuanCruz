@@ -1,8 +1,8 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import { useAppContext } from "../../components/context/AppContext.jsx"; 
-import GestionProductos from "./GestionProductos.jsx"; 
-import ListaClientes from "./ListaClientes.jsx";       
-import InscriptosClases from "./InscriptosClases.jsx"; 
+import ProductManagement from "./ProductManagement.jsx"; 
+import ClientList from "./ClientList.jsx";       
+import ClassEnrollments from "./ClassEnrollments.jsx"; 
 
 const AdminPanel = () => {
     const { activeSection, setActiveSection } = useAppContext();
@@ -76,9 +76,9 @@ const AdminPanel = () => {
                 </div>
             )}
 
-            {activeSection === "products" && <GestionProductos />}
-            {activeSection === "clients" && <ListaClientes />}
-            {activeSection === "classes" && <InscriptosClases />}
+            {activeSection === "products" && <ProductManagement />}
+            {activeSection === "clients" && <ClientList />}
+            {activeSection === "classes" && <ClassEnrollments />}
         </Container>
     );
 };

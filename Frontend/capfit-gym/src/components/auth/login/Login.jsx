@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Button, Form, Card } from "react-bootstrap";
-import { useAppContext } from "../../context/AppContext"; 
+import { useAppContext } from "../../context/AppContext.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "./Login.css";
 
 const Login = ({ onLoginSuccess }) => {
-    const { setAlertMessage } = useAppContext();
+    const { setAlertMessage, setToken, setRole, setUserName, setUserEmail } = useAppContext();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -44,6 +44,11 @@ const Login = ({ onLoginSuccess }) => {
             localStorage.setItem('rol', data.rol);
             localStorage.setItem('nombre', data.nombre);
             localStorage.setItem('email', email);
+
+            if (setToken) setToken(data.token);
+            if (setRole) setRole(data.rol);
+            if (setUserName) setUserName(data.nombre);
+            if (setUserEmail) setUserEmail(email);
 
             setAlertMessage({
                 text: `¡Bienvenido ${data.nombre} (${data.rol})! Redirigiendo...`,
@@ -87,7 +92,7 @@ const Login = ({ onLoginSuccess }) => {
                                 Formato de email inválido.
                             </Form.Control.Feedback>
                         </Form.Group>
-                        
+
                         <Form.Group className="mb-4" controlId="formPassword">
                             <Form.Label className="fw-semibold fs-5 text-warning">Contraseña</Form.Label>
                             <Form.Control
